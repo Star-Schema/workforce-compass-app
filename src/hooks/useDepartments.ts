@@ -20,8 +20,11 @@ export const useDepartments = () => {
     queryKey: ['departmentsWithCount'],
     queryFn: async (): Promise<DepartmentWithEmployeeCount[]> => {
       try {
-        // Fix: Updated 4-9 error
-        const { data, error } = await supabase.rpc<DepartmentWithEmployeeCount[], undefined>('get_departments_with_employee_count');
+        // Use type assertion to specify the expected response structure
+        const { data, error } = await supabase.rpc('get_departments_with_employee_count') as { 
+          data: DepartmentWithEmployeeCount[], 
+          error: Error | null 
+        };
         
         if (error) throw error;
         return data || [];
@@ -58,10 +61,14 @@ export const useDepartments = () => {
 
   const addDepartmentMutation = useMutation({
     mutationFn: async (newDepartment: DepartmentFormValues) => {
+      // Generate a shorter department code (5 characters max)
+      // Using a simple alphanumeric code instead of timestamp
+      const deptcode = 'D' + Math.floor(1000 + Math.random() * 9000).toString();
+      
       const { data, error } = await supabase
         .from('department')
         .insert([{ 
-          deptcode: Date.now().toString(),
+          deptcode: deptcode,  // Now using the shorter ID
           deptname: newDepartment.deptname
         }])
         .select();

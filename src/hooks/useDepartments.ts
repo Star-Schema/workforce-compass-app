@@ -20,8 +20,8 @@ export const useDepartments = () => {
     queryKey: ['departmentsWithCount'],
     queryFn: async (): Promise<DepartmentWithEmployeeCount[]> => {
       try {
-        // Use the rpc method without specifying explicit generic types
-        // This allows TypeScript to infer the types correctly
+        // Use the rpc method without specifying type parameters
+        // Let TypeScript infer the types correctly
         const { data, error } = await supabase
           .rpc('get_departments_with_employee_count');
         

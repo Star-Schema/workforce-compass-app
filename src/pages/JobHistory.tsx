@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -35,12 +34,6 @@ import { format } from 'date-fns';
 import { JobHistory, Employee, Department } from '@/types/database';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { toast } from 'sonner';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 interface JobHistoryRecord {
   jobcode: string;
@@ -194,9 +187,8 @@ const JobHistoryPage = () => {
 
         <div className="flex flex-wrap items-center gap-4 justify-between">
           <div className="flex flex-wrap items-center gap-2">
-            {/* Updated Filter button implementation using DropdownMenu instead of Popover */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+              <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="h-9">
                   <Filter className="mr-2 h-4 w-4" />
                   Filter
@@ -204,8 +196,8 @@ const JobHistoryPage = () => {
                     <span className="ml-1 rounded-full bg-primary w-2 h-2"></span>
                   )}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-80 p-4" align="start">
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-4" align="start">
                 <div className="grid gap-4">
                   <div className="space-y-2">
                     <h4 className="font-medium leading-none">Filters</h4>
@@ -269,8 +261,8 @@ const JobHistoryPage = () => {
                     </Button>
                   </div>
                 </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </PopoverContent>
+            </Popover>
             
             {(employeeFilter || departmentFilter) && (
               <div className="flex items-center gap-2 text-sm">

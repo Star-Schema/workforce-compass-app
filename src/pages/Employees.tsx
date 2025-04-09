@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -191,10 +192,13 @@ const Employees = () => {
 
   const addEmployeeMutation = useMutation({
     mutationFn: async (newEmployee: EmployeeFormValues) => {
+      // Generate a 5-character employee code
+      const empno = 'E' + Math.floor(1000 + Math.random() * 9000).toString();
+      
       const { data: empData, error: empError } = await supabase
         .from('employee')
         .insert([{
-          empno: Date.now().toString(),
+          empno: empno,
           firstname: newEmployee.firstname,
           lastname: newEmployee.lastname,
           gender: newEmployee.gender,

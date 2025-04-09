@@ -20,8 +20,7 @@ export const useDepartments = () => {
     queryKey: ['departmentsWithCount'],
     queryFn: async (): Promise<DepartmentWithEmployeeCount[]> => {
       try {
-        // Use type assertion to specify the expected response structure
-        const { data, error } = await supabase.rpc('get_departments_with_employee_count') as { 
+        const { data, error } = await supabase.rpc('get_departments_with_employee_count', {}) as { 
           data: DepartmentWithEmployeeCount[], 
           error: Error | null 
         };

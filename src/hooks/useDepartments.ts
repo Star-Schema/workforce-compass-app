@@ -20,12 +20,8 @@ export const useDepartments = () => {
     queryKey: ['departmentsWithCount'],
     queryFn: async (): Promise<DepartmentWithEmployeeCount[]> => {
       try {
-        // Fix: using any type to solve the TypeScript error with rpc
-        const { data, error } = await supabase
-          .rpc('get_departments_with_employee_count') as { 
-            data: DepartmentWithEmployeeCount[] | null, 
-            error: Error | null 
-          };
+        // Fix: Updated 4-9 error
+        const { data, error } = await supabase.rpc<DepartmentWithEmployeeCount[], undefined>('get_departments_with_employee_count');
         
         if (error) throw error;
         return data || [];

@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { 
   History,
   Search,
-  Filter,
   RefreshCw,
   FilterX,
 } from 'lucide-react';
@@ -26,10 +26,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { format } from 'date-fns';
 import { JobHistory, Employee, Department } from '@/types/database';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -53,9 +54,10 @@ interface JobHistoryRecord {
 }
 
 const JobHistoryPage = () => {
+  const [activeTab, setActiveTab] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [employeeFilter, setEmployeeFilter] = useState<string>('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('');
-  const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
     console.log("JobHistory component mounted");
@@ -78,10 +80,10 @@ const JobHistoryPage = () => {
   }, []);
 
   const { data: jobHistory = [], isLoading: isLoadingJobHistory, refetch, error } = useQuery<JobHistoryRecord[]>({
-    queryKey: ['jobHistory', employeeFilter, departmentFilter],
+    queryKey: ['jobHistory', employeeFilter, departmentFilter, searchQuery],
     queryFn: async () => {
       try {
-        console.log("Fetching job history with filters:", { employeeFilter, departmentFilter });
+        console.log("Fetching job history with filters:", { employeeFilter, departmentFilter, searchQuery });
         
         let query = supabase
           .from('jobhistory')
@@ -111,7 +113,24 @@ const JobHistoryPage = () => {
         }
         
         console.log("Job history data:", data);
-        return data || [];
+        
+        let filteredData = data || [];
+        
+        // Apply search filter if search query exists
+        if (searchQuery) {
+          const lowerCaseSearch = searchQuery.toLowerCase();
+          filteredData = filteredData.filter(record => {
+            const employeeName = `${record.employee?.firstname || ''} ${record.employee?.lastname || ''}`.toLowerCase();
+            const departmentName = record.department?.deptname?.toLowerCase() || '';
+            const jobCode = record.jobcode?.toLowerCase() || '';
+            
+            return employeeName.includes(lowerCaseSearch) || 
+                   departmentName.includes(lowerCaseSearch) ||
+                   jobCode.includes(lowerCaseSearch);
+          });
+        }
+        
+        return filteredData;
       } catch (error) {
         console.error("Failed to fetch job history:", error);
         toast.error("Failed to load job history data");
@@ -169,7 +188,7 @@ const JobHistoryPage = () => {
   const handleClearFilters = () => {
     setEmployeeFilter('');
     setDepartmentFilter('');
-    setFilterOpen(false);
+    setSearchQuery('');
   };
 
   const handleRefresh = () => {
@@ -185,122 +204,148 @@ const JobHistoryPage = () => {
           <p className="text-muted-foreground">Track employee job transitions and career progression</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9">
-                  <Filter className="mr-2 h-4 w-4" />
-                  Filter
-                  {(employeeFilter || departmentFilter) && (
-                    <span className="ml-1 rounded-full bg-primary w-2 h-2"></span>
-                  )}
+        <Tabs 
+          defaultValue="all" 
+          value={activeTab}
+          onValueChange={(value) => {
+            setActiveTab(value);
+            handleClearFilters();
+          }}
+          className="w-full"
+        >
+          <div className="flex flex-wrap items-center gap-4 justify-between">
+            <TabsList className="mb-2">
+              <TabsTrigger value="all">All History</TabsTrigger>
+              <TabsTrigger value="search">Search</TabsTrigger>
+              <TabsTrigger value="filters">Advanced Filters</TabsTrigger>
+            </TabsList>
+            
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={handleRefresh}
+              title="Refresh"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <TabsContent value="all" className="mt-0">
+            {/* All job history with no filters */}
+          </TabsContent>
+          
+          <TabsContent value="search" className="mt-0 space-y-4">
+            <div className="flex items-center space-x-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search by employee name, department, or job code..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSearchQuery('')}
+                >
+                  <FilterX className="h-4 w-4 mr-1" />
+                  Clear
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-4" align="start">
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <h4 className="font-medium leading-none">Filters</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Filter job history by employee or department
-                    </p>
-                  </div>
-                  <div className="grid gap-2">
-                    <div className="grid gap-1">
-                      <label htmlFor="employee" className="text-sm font-medium leading-none">
-                        Employee
-                      </label>
-                      <Select
-                        value={employeeFilter}
-                        onValueChange={setEmployeeFilter}
-                      >
-                        <SelectTrigger id="employee">
-                          <SelectValue placeholder="All Employees" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">All Employees</SelectItem>
-                          {employees.map((employee: Employee) => (
-                            <SelectItem key={employee.empno} value={employee.empno}>
-                              {employee.firstname} {employee.lastname}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-1">
-                      <label htmlFor="department" className="text-sm font-medium leading-none">
-                        Department
-                      </label>
-                      <Select
-                        value={departmentFilter}
-                        onValueChange={setDepartmentFilter}
-                      >
-                        <SelectTrigger id="department">
-                          <SelectValue placeholder="All Departments" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">All Departments</SelectItem>
-                          {departments.map((department: Department) => (
-                            <SelectItem key={department.deptcode} value={department.deptcode}>
-                              {department.deptname}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="flex justify-between">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={handleClearFilters}
-                      disabled={!employeeFilter && !departmentFilter}
-                    >
-                      <FilterX className="mr-2 h-4 w-4" />
-                      Clear Filters
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+              )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="filters" className="mt-0 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="employee" className="text-sm font-medium leading-none">
+                  Employee
+                </label>
+                <Select
+                  value={employeeFilter}
+                  onValueChange={setEmployeeFilter}
+                >
+                  <SelectTrigger id="employee">
+                    <SelectValue placeholder="All Employees" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Employees</SelectItem>
+                    {employees.map((employee: Employee) => (
+                      <SelectItem key={employee.empno} value={employee.empno}>
+                        {employee.firstname} {employee.lastname}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+                          
+              <div className="space-y-2">
+                <label htmlFor="department" className="text-sm font-medium leading-none">
+                  Department
+                </label>
+                <Select
+                  value={departmentFilter}
+                  onValueChange={setDepartmentFilter}
+                >
+                  <SelectTrigger id="department">
+                    <SelectValue placeholder="All Departments" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Departments</SelectItem>
+                    {departments.map((department: Department) => (
+                      <SelectItem key={department.deptcode} value={department.deptcode}>
+                        {department.deptname}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             
             {(employeeFilter || departmentFilter) && (
-              <div className="flex items-center gap-2 text-sm">
-                <div className="bg-muted text-muted-foreground rounded-md px-2 py-1">
-                  {employeeFilter && employees.length > 0 && (
-                    <span className="inline-flex items-center">
-                      Employee: {
-                        (() => {
-                          const emp = employees.find(e => e.empno === employeeFilter);
-                          return emp ? `${emp.firstname} ${emp.lastname}` : '';
-                        })()
-                      }
-                    </span>
-                  )}
-                  {departmentFilter && departments.length > 0 && (
-                    <span className="inline-flex items-center">
-                      {employeeFilter && ' • '}
-                      Department: {
-                        (() => {
-                          const dept = departments.find(d => d.deptcode === departmentFilter);
-                          return dept ? dept.deptname : '';
-                        })()
-                      }
-                    </span>
-                  )}
-                </div>
+              <div className="flex items-center justify-end">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleClearFilters}
+                  className="mr-2"
+                >
+                  <FilterX className="mr-2 h-4 w-4" />
+                  Clear Filters
+                </Button>
               </div>
             )}
+          </TabsContent>
+        </Tabs>
+
+        {(employeeFilter || departmentFilter) && (
+          <div className="flex items-center gap-2 text-sm">
+            <div className="bg-muted text-muted-foreground rounded-md px-2 py-1">
+              {employeeFilter && employees.length > 0 && (
+                <span className="inline-flex items-center">
+                  Employee: {
+                    (() => {
+                      const emp = employees.find(e => e.empno === employeeFilter);
+                      return emp ? `${emp.firstname} ${emp.lastname}` : '';
+                    })()
+                  }
+                </span>
+              )}
+              {departmentFilter && departments.length > 0 && (
+                <span className="inline-flex items-center">
+                  {employeeFilter && ' • '}
+                  Department: {
+                    (() => {
+                      const dept = departments.find(d => d.deptcode === departmentFilter);
+                      return dept ? dept.deptname : '';
+                    })()
+                  }
+                </span>
+              )}
+            </div>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={handleRefresh}
-            title="Refresh"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        </div>
+        )}
 
         <div className="table-container">
           <Table>

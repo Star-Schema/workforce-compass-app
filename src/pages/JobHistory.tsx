@@ -79,11 +79,21 @@ const JobHistoryPage = () => {
     checkSupabase();
   }, []);
 
+  // Clear filters when changing tabs
+  useEffect(() => {
+    // Only clear filters when switching to the "all" tab
+    if (activeTab === "all") {
+      setEmployeeFilter('');
+      setDepartmentFilter('');
+      setSearchQuery('');
+    }
+  }, [activeTab]);
+
   const { data: jobHistory = [], isLoading: isLoadingJobHistory, refetch, error } = useQuery<JobHistoryRecord[]>({
-    queryKey: ['jobHistory', employeeFilter, departmentFilter, searchQuery],
+    queryKey: ['jobHistory', employeeFilter, departmentFilter, searchQuery, activeTab],
     queryFn: async () => {
       try {
-        console.log("Fetching job history with filters:", { employeeFilter, departmentFilter, searchQuery });
+        console.log("Fetching job history with filters:", { employeeFilter, departmentFilter, searchQuery, activeTab });
         
         let query = supabase
           .from('jobhistory')
@@ -97,12 +107,17 @@ const JobHistoryPage = () => {
             department:department!jobhistory_deptcode_fkey(deptcode, deptname)
           `);
         
-        if (employeeFilter) {
-          query = query.eq('empno', employeeFilter);
+        // Only apply filters if not in the "all" tab or if filters are explicitly set
+        if (activeTab !== "all" || employeeFilter) {
+          if (employeeFilter) {
+            query = query.eq('empno', employeeFilter);
+          }
         }
         
-        if (departmentFilter) {
-          query = query.eq('deptcode', departmentFilter);
+        if (activeTab !== "all" || departmentFilter) {
+          if (departmentFilter) {
+            query = query.eq('deptcode', departmentFilter);
+          }
         }
         
         const { data, error } = await query.order('effdate', { ascending: false });
@@ -134,9 +149,10 @@ const JobHistoryPage = () => {
       } catch (error) {
         console.error("Failed to fetch job history:", error);
         toast.error("Failed to load job history data");
-        throw error; // Rethrow to let React Query handle the error state
+        throw error;
       }
     },
+    enabled: true, // Always enable the query to ensure filters work
   });
 
   useEffect(() => {
@@ -196,6 +212,13 @@ const JobHistoryPage = () => {
     refetch();
   };
 
+  // Function to apply filters when in the filters tab
+  const handleApplyFilters = () => {
+    // This will trigger the query to refetch with current filter values
+    refetch();
+    toast.info("Filters applied");
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -209,7 +232,6 @@ const JobHistoryPage = () => {
           value={activeTab}
           onValueChange={(value) => {
             setActiveTab(value);
-            handleClearFilters();
           }}
           className="w-full"
         >
@@ -303,8 +325,8 @@ const JobHistoryPage = () => {
               </div>
             </div>
             
-            {(employeeFilter || departmentFilter) && (
-              <div className="flex items-center justify-end">
+            <div className="flex items-center justify-end gap-2">
+              {(employeeFilter || departmentFilter) && (
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -314,8 +336,15 @@ const JobHistoryPage = () => {
                   <FilterX className="mr-2 h-4 w-4" />
                   Clear Filters
                 </Button>
-              </div>
-            )}
+              )}
+
+              <Button
+                size="sm"
+                onClick={handleApplyFilters}
+              >
+                Apply Filters
+              </Button>
+            </div>
           </TabsContent>
         </Tabs>
 

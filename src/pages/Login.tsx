@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -25,7 +26,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { hasValidCredentials } from '@/lib/supabase';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
@@ -63,7 +64,9 @@ const Login = () => {
       // Note: navigation is handled in signIn method
     } catch (error) {
       console.error('Login error:', error);
-      setLoginError("Failed to sign in. Please check your credentials and try again.");
+      setLoginError(typeof error === 'object' && error !== null && 'message' in error 
+        ? String(error.message) 
+        : "Failed to sign in. Please check your credentials and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -130,7 +133,12 @@ const Login = () => {
                   className="w-full bg-hrm-600 hover:bg-hrm-700 text-white" 
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Signing in...' : 'Sign in'}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : 'Sign in'}
                 </Button>
               </form>
             </Form>

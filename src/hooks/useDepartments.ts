@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Department, DepartmentWithEmployeeCount } from '@/types/database';
@@ -20,7 +19,6 @@ export const useDepartments = () => {
     queryKey: ['departmentsWithCount'],
     queryFn: async (): Promise<DepartmentWithEmployeeCount[]> => {
       try {
-        // Fix the RPC call by using a more explicit approach
         const { data, error } = await supabase
           .from('department')
           .select('*, employee_count:jobhistory(count)')
@@ -61,14 +59,21 @@ export const useDepartments = () => {
 
   const addDepartmentMutation = useMutation({
     mutationFn: async (newDepartment: DepartmentFormValues) => {
-      // Generate a shorter department code (3 characters max)
-      const randomNum = Math.floor(100 + Math.random() * 900); // 3-digit number between 100-999
-      const deptcode = randomNum.toString().substring(0, 3); // Ensure it's 3 chars max
+      let deptcode = '';
+      
+      const randomNum = Math.floor(100 + Math.random() * 900);
+      deptcode = randomNum.toString();
+      
+      console.log(`Generated department code: ${deptcode} (length: ${deptcode.length})`);
+      
+      if (deptcode.length !== 3) {
+        throw new Error("Failed to generate a valid 3-character department code");
+      }
       
       const { data, error } = await supabase
         .from('department')
         .insert([{ 
-          deptcode: deptcode,  // Now using 3-character ID
+          deptcode: deptcode,
           deptname: newDepartment.deptname
         }])
         .select();

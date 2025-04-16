@@ -61,14 +61,14 @@ export const useDepartments = () => {
 
   const addDepartmentMutation = useMutation({
     mutationFn: async (newDepartment: DepartmentFormValues) => {
-      // Generate a shorter department code (5 characters max)
-      // Using a simple alphanumeric code instead of timestamp
-      const deptcode = 'D' + Math.floor(1000 + Math.random() * 9000).toString();
+      // Generate a shorter department code (3 characters max)
+      const randomNum = Math.floor(100 + Math.random() * 900); // 3-digit number between 100-999
+      const deptcode = randomNum.toString().substring(0, 3); // Ensure it's 3 chars max
       
       const { data, error } = await supabase
         .from('department')
         .insert([{ 
-          deptcode: deptcode,  // Now using the shorter ID
+          deptcode: deptcode,  // Now using 3-character ID
           deptname: newDepartment.deptname
         }])
         .select();

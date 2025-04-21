@@ -42,8 +42,8 @@ const ManageJobHistory = ({
         .from('jobhistory')
         .select(`
           effdate,
-          department:deptcode(deptname),
-          job:jobcode(jobdesc),
+          deptcode,
+          jobcode,
           salary
         `)
         .eq('empno', employeeNumber)
@@ -53,13 +53,43 @@ const ManageJobHistory = ({
         throw error;
       }
 
-      // Transform the data to match our component needs
-      const transformedData = data.map(item => ({
-        effdate: item.effdate,
-        department: item.department?.deptname || 'Unknown',
-        jobPosition: item.job?.jobdesc || 'Unknown',
-        salary: item.salary || 0,
-      }));
+      // Fetch department names and job descriptions separately
+      const transformedData = await Promise.all(
+        data.map(async (item) => {
+          // Get department name
+          let departmentName = 'Unknown';
+          if (item.deptcode) {
+            const { data: deptData } = await supabase
+              .from('department')
+              .select('deptname')
+              .eq('deptcode', item.deptcode)
+              .single();
+            
+            if (deptData) {
+              departmentName = deptData.deptname || 'Unknown';
+            }
+          }
+
+          // Get job description
+          let jobDescription = 'Unknown';
+          const { data: jobData } = await supabase
+            .from('job')
+            .select('jobdesc')
+            .eq('jobcode', item.jobcode)
+            .single();
+          
+          if (jobData) {
+            jobDescription = jobData.jobdesc || 'Unknown';
+          }
+
+          return {
+            effdate: item.effdate,
+            department: departmentName,
+            jobPosition: jobDescription,
+            salary: item.salary || 0,
+          };
+        })
+      );
 
       setJobHistoryData(transformedData);
     } catch (error) {

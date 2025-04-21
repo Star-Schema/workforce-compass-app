@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/form';
 import { UseFormReturn } from 'react-hook-form';
 
-// Update the type to match the schema where deptname is required
+// Add deptcode as a field (auto-generated, not editable)
 interface AddDepartmentDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -36,17 +36,26 @@ const AddDepartmentDialog: React.FC<AddDepartmentDialogProps> = ({
   onSubmit,
   isPending,
 }) => {
+  // Example deptcode generation preview (not used for submission, just an example)
+  // In practice, the backend assigns the code, we just show a placeholder.
+  const generatedCode = 'Auto-generated';
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add New Department</DialogTitle>
           <DialogDescription>
-            Enter the details for the new department
+            Enter details for the new department.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div>
+              <FormLabel>DeptCode</FormLabel>
+              <Input value={generatedCode} disabled className="mb-2" />
+              <span className="text-xs text-muted-foreground block">DeptCode will be auto-generated</span>
+            </div>
             <FormField
               control={form.control}
               name="deptname"

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -68,25 +67,6 @@ const Dashboard = () => {
     }
   });
 
-  // Fetch recent job history entries
-  const { data: recentJobHistory = [], isLoading: isLoadingJobHistory } = useQuery({
-    queryKey: ['recentJobHistory'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('jobhistory')
-        .select(`
-          *,
-          employee (firstname, lastname),
-          department (deptname)
-        `)
-        .order('effdate', { ascending: false })
-        .limit(5);
-      
-      if (error) throw error;
-      return data || [];
-    }
-  });
-
   // Calculate average employee salary
   const { data: avgSalary = '0', isLoading: isLoadingSalary } = useQuery({
     queryKey: ['avgSalary'],
@@ -105,7 +85,7 @@ const Dashboard = () => {
     }
   });
 
-  const isLoading = isLoadingEmployees || isLoadingDepartments || isLoadingJobHistory || isLoadingSalary;
+  const isLoading = isLoadingEmployees || isLoadingDepartments || isLoadingSalary;
 
   return (
     <DashboardLayout>
@@ -127,58 +107,10 @@ const Dashboard = () => {
             icon={<Building size={20} />}
           />
           <StatCard 
-            title="Job Changes"
-            value={isLoading ? "..." : recentJobHistory.length}
-            icon={<History size={20} />}
-            description="Recent job transitions"
-          />
-          <StatCard 
             title="Average Salary"
             value={isLoading ? "..." : avgSalary}
             icon={<TrendingUp size={20} />}
           />
-        </div>
-        
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Recent Job Changes</h2>
-          <div className="table-container">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Job Code</TableHead>
-                  <TableHead>Salary</TableHead>
-                  <TableHead>Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-4">Loading...</TableCell>
-                  </TableRow>
-                ) : recentJobHistory.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-4">No recent job changes</TableCell>
-                  </TableRow>
-                ) : (
-                  recentJobHistory.map((history: any) => (
-                    <TableRow key={history.empno + history.effdate}>
-                      <TableCell>
-                        {history.employee?.firstname} {history.employee?.lastname}
-                      </TableCell>
-                      <TableCell>{history.department?.deptname}</TableCell>
-                      <TableCell>{history.jobcode}</TableCell>
-                      <TableCell>${history.salary?.toFixed(2) || '0.00'}</TableCell>
-                      <TableCell>
-                        {format(new Date(history.effdate), 'MMM d, yyyy')}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
         </div>
       </div>
     </DashboardLayout>

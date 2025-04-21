@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/form';
 import { UseFormReturn } from 'react-hook-form';
 
-// Update the interface to match where deptname is required
+// Add deptcode field for viewing (not editable)
 interface EditDepartmentDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -36,17 +36,24 @@ const EditDepartmentDialog: React.FC<EditDepartmentDialogProps> = ({
   onSubmit,
   isPending,
 }) => {
+  // deptcode will be on form._defaultValues, but if not, fallback ''
+  const deptcode = form.getValues('deptcode') || form._defaultValues.deptcode || '';
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Department</DialogTitle>
           <DialogDescription>
-            Update the department details
+            Update the department details.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div>
+              <FormLabel>DeptCode</FormLabel>
+              <Input value={deptcode} disabled className="mb-2" />
+            </div>
             <FormField
               control={form.control}
               name="deptname"

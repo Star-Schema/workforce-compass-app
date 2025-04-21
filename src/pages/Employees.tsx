@@ -50,6 +50,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
 import { Employee, Department, Job, JobHistory } from '@/types/database';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import ManageJobHistory from '@/components/ManageJobHistory';
 
 interface EmployeeWithJobHistory extends Employee {
   jobhistory: JobHistory[];
@@ -75,6 +76,8 @@ const Employees = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeWithJobHistory | null>(null);
+  const [isJobHistoryDialogOpen, setIsJobHistoryDialogOpen] = useState(false);
+  const [jobHistoryEmployee, setJobHistoryEmployee] = useState<{ empno: string, fullname: string } | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -400,6 +403,14 @@ const Employees = () => {
     setIsDeleteDialogOpen(true);
   };
 
+  const openJobHistoryDialog = (employee: EmployeeWithJobHistory) => {
+    setJobHistoryEmployee({
+      empno: employee.empno,
+      fullname: `${employee.lastname}, ${employee.firstname}`
+    });
+    setIsJobHistoryDialogOpen(true);
+  };
+
   const filteredEmployees = employees;
 
   return (
@@ -591,7 +602,10 @@ const Employees = () => {
                 variant="ghost"
                 className="w-1/4 text-gray-800 underline bg-transparent hover:bg-gray-100"
                 onClick={() => {
-                  alert("Manage Job History not yet implemented.");
+                  toast({
+                    title: "Information",
+                    description: "Please save the employee first before managing job history.",
+                  });
                 }}
               >
                 Manage Job History
@@ -788,14 +802,29 @@ const Employees = () => {
                   )}
                 />
               </div>
-              <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsEditDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
+              <DialogFooter className="flex justify-between">
+                <div className="flex gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsEditDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="ghost"
+                    className="text-gray-800 underline bg-transparent hover:bg-gray-100"
+                    onClick={() => {
+                      if (selectedEmployee) {
+                        setIsEditDialogOpen(false);
+                        openJobHistoryDialog(selectedEmployee);
+                      }
+                    }}
+                  >
+                    Manage Job History
+                  </Button>
+                </div>
                 <Button 
                   type="submit" 
                   className="bg-hrm-600 hover:bg-hrm-700 text-white"
@@ -844,6 +873,15 @@ const Employees = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {jobHistoryEmployee && (
+        <ManageJobHistory
+          isOpen={isJobHistoryDialogOpen}
+          onClose={() => setIsJobHistoryDialogOpen(false)}
+          employeeNumber={jobHistoryEmployee.empno}
+          employeeName={jobHistoryEmployee.fullname}
+        />
+      )}
     </DashboardLayout>
   );
 };

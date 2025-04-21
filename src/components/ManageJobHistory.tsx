@@ -13,13 +13,20 @@ interface ManageJobHistoryProps {
   employeeName: string;
 }
 
+interface JobHistoryItem {
+  effdate: string;
+  department: string;
+  jobPosition: string;
+  salary: number;
+}
+
 const ManageJobHistory = ({
   isOpen,
   onClose,
   employeeNumber,
   employeeName,
 }: ManageJobHistoryProps) => {
-  const [jobHistoryData, setJobHistoryData] = useState<any[]>([]);
+  const [jobHistoryData, setJobHistoryData] = useState<JobHistoryItem[]>([]);
   const { toast } = useToast();
 
   // Fetch job history data when the dialog opens

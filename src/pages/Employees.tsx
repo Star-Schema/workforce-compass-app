@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -496,190 +495,117 @@ const Employees = () => {
         </div>
       </div>
 
+      {/* "Add Employee" dialog with styled form */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Add New Employee</DialogTitle>
-            <DialogDescription>
-              Enter the details for the new employee
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...addForm}>
-            <form onSubmit={addForm.handleSubmit(handleAddEmployee)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={addForm.control}
-                  name="firstname"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>First Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={addForm.control}
-                  name="lastname"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+        <DialogContent className="sm:max-w-[600px] p-0">
+          <form
+            onSubmit={addForm.handleSubmit(handleAddEmployee)}
+            className="border border-gray-400 rounded w-full bg-white px-8 py-6"
+          >
+            <div className="font-bold text-lg mb-1">Add New employee</div>
+            <div className="ml-0.5 mb-2">
+              <div className="flex flex-col text-sm">
+                <span className="font-medium">Employee Number</span>
+                <span className="text-gray-500">&lt;auto increment&gt; not editable</span>
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={addForm.control}
-                  name="gender"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Gender</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select gender" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="M">Male</SelectItem>
-                          <SelectItem value="F">Female</SelectItem>
-                          <SelectItem value="O">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+            </div>
+            {/* First Name + Last Name */}
+            <div className="flex flex-row gap-4 mb-2">
+              <div className="flex-1">
+                <label className="block text-sm font-medium mb-1">First name</label>
+                <Input
+                  {...addForm.register("firstname")}
+                  className="w-full"
+                  placeholder=""
                 />
-                <FormField
-                  control={addForm.control}
-                  name="birthdate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Birth Date</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="date" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <span className="text-destructive text-xs">{addForm.formState.errors.firstname?.message}</span>
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={addForm.control}
-                  name="hiredate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Hire Date</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="date" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+              <div className="flex-1">
+                <label className="block text-sm font-medium mb-1">Last Name</label>
+                <Input
+                  {...addForm.register("lastname")}
+                  className="w-full"
+                  placeholder=""
                 />
-                <FormField
-                  control={addForm.control}
-                  name="salary"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Salary</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="number" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <span className="text-destructive text-xs">{addForm.formState.errors.lastname?.message}</span>
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={addForm.control}
-                  name="deptcode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Department</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select department" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {departments.map((department) => (
-                            <SelectItem key={department.deptcode} value={department.deptcode}>
-                              {department.deptname}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={addForm.control}
-                  name="jobcode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Job</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select job" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {jobs.map((job) => (
-                            <SelectItem key={job.jobcode} value={job.jobcode}>
-                              {job.jobdesc}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsAddDialogOpen(false)}
+            </div>
+            {/* Gender + Birthdate */}
+            <div className="flex flex-row gap-4 mb-2">
+              <div className="flex-1">
+                <label className="block text-sm font-medium mb-1">Gender</label>
+                <select
+                  {...addForm.register("gender")}
+                  className="w-full border border-gray-300 rounded px-2 py-1"
+                  defaultValue=""
                 >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  className="bg-hrm-600 hover:bg-hrm-700 text-white"
-                  disabled={addEmployeeMutation.isPending}
-                >
-                  {addEmployeeMutation.isPending ? 'Adding...' : 'Add Employee'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+                  <option value="" disabled>
+                    Select gender
+                  </option>
+                  <option value="M">Male</option>
+                  <option value="F">Female</option>
+                  <option value="O">Other</option>
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium mb-1">Birthdate</label>
+                <Input
+                  {...addForm.register("birthdate")}
+                  className="w-full"
+                  type="date"
+                />
+              </div>
+            </div>
+            {/* Hire Date + Separation Date */}
+            <div className="flex flex-row gap-4 mb-8">
+              <div className="flex-1">
+                <label className="block text-sm font-medium mb-1">Hire Date</label>
+                <Input
+                  {...addForm.register("hiredate")}
+                  className="w-full"
+                  type="date"
+                />
+                <span className="text-destructive text-xs">{addForm.formState.errors.hiredate?.message}</span>
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium mb-1">Seperation Date</label>
+                <Input
+                  {...addForm.register("sepdate")}
+                  className="w-full"
+                  type="date"
+                />
+              </div>
+            </div>
+            {/* Footer Buttons */}
+            <div className="flex flex-row justify-between items-center pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-1/4"
+                onClick={() => setIsAddDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-1/4 text-gray-800 underline bg-transparent hover:bg-gray-100"
+                onClick={() => {
+                  // Placeholder action for Manage Job History
+                  alert("Manage Job History not yet implemented.");
+                }}
+              >
+                Manage Job History
+              </Button>
+              <Button
+                type="submit"
+                className="w-1/4 bg-hrm-600 hover:bg-hrm-700 text-white"
+                disabled={addEmployeeMutation.isPending}
+              >
+                {addEmployeeMutation.isPending ? "Adding..." : "Add Employee"}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
 

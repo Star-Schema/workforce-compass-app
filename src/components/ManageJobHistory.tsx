@@ -35,8 +35,8 @@ const ManageJobHistory = ({
         .from('jobhistory')
         .select(`
           effdate,
-          department(deptname),
-          job(jobdesc),
+          department:deptcode(deptname),
+          job:jobcode(jobdesc),
           salary
         `)
         .eq('empno', employeeNumber)

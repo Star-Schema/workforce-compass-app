@@ -192,7 +192,6 @@ const Employees = () => {
 
   const addEmployeeMutation = useMutation({
     mutationFn: async (newEmployee: EmployeeFormValues) => {
-      // Generate a 5-character employee code
       const empno = 'E' + Math.floor(1000 + Math.random() * 9000).toString();
       
       const { data: empData, error: empError } = await supabase
@@ -413,9 +412,9 @@ const Employees = () => {
           </div>
           <Button 
             onClick={() => setIsAddDialogOpen(true)}
-            className="bg-hrm-600 hover:bg-hrm-700 text-white"
+            variant="ghost"
+            className="text-blue-600 underline bg-transparent hover:bg-gray-100 px-0 py-0 h-auto"
           >
-            <PlusCircle className="mr-2 h-4 w-4" />
             Add Employee
           </Button>
         </div>
@@ -501,7 +500,6 @@ const Employees = () => {
         </div>
       </div>
 
-      {/* "Add Employee" dialog with styled form */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[600px] p-0">
           <form
@@ -515,7 +513,6 @@ const Employees = () => {
                 <span className="text-gray-500">&lt;auto increment&gt; not editable</span>
               </div>
             </div>
-            {/* First Name + Last Name */}
             <div className="flex flex-row gap-4 mb-2">
               <div className="flex-1">
                 <label className="block text-sm font-medium mb-1">First name</label>
@@ -536,7 +533,6 @@ const Employees = () => {
                 <span className="text-destructive text-xs">{addForm.formState.errors.lastname?.message}</span>
               </div>
             </div>
-            {/* Gender + Birthdate */}
             <div className="flex flex-row gap-4 mb-2">
               <div className="flex-1">
                 <label className="block text-sm font-medium mb-1">Gender</label>
@@ -562,7 +558,6 @@ const Employees = () => {
                 />
               </div>
             </div>
-            {/* Hire Date + Separation Date */}
             <div className="flex flex-row gap-4 mb-8">
               <div className="flex-1">
                 <label className="block text-sm font-medium mb-1">Hire Date</label>
@@ -582,7 +577,6 @@ const Employees = () => {
                 />
               </div>
             </div>
-            {/* Footer Buttons */}
             <div className="flex flex-row justify-between items-center pt-2">
               <Button
                 type="button"
@@ -597,7 +591,6 @@ const Employees = () => {
                 variant="ghost"
                 className="w-1/4 text-gray-800 underline bg-transparent hover:bg-gray-100"
                 onClick={() => {
-                  // Placeholder action for Manage Job History
                   alert("Manage Job History not yet implemented.");
                 }}
               >
@@ -780,7 +773,21 @@ const Employees = () => {
                   )}
                 />
               </div>
-              
+              <div>
+                <FormField
+                  control={editForm.control}
+                  name="sepdate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Separation Date</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="date" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <DialogFooter>
                 <Button 
                   type="button" 

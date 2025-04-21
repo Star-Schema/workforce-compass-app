@@ -61,6 +61,7 @@ const employeeFormSchema = z.object({
   gender: z.string().optional(),
   birthdate: z.string().optional(),
   hiredate: z.string().min(1, { message: 'Hire date is required' }),
+  sepdate: z.string().optional(),
   deptcode: z.string().optional(),
   jobcode: z.string().optional(),
   salary: z.coerce.number().min(0, { message: 'Salary must be a positive number' }).optional(),
@@ -202,7 +203,8 @@ const Employees = () => {
           lastname: newEmployee.lastname,
           gender: newEmployee.gender,
           birthdate: newEmployee.birthdate,
-          hiredate: newEmployee.hiredate
+          hiredate: newEmployee.hiredate,
+          sepdate: newEmployee.sepdate
         }])
         .select();
       
@@ -251,7 +253,8 @@ const Employees = () => {
           lastname: updateData.lastname,
           gender: updateData.gender,
           birthdate: updateData.birthdate,
-          hiredate: updateData.hiredate
+          hiredate: updateData.hiredate,
+          sepdate: updateData.sepdate
         })
         .eq('empno', empno)
         .select();
@@ -333,6 +336,7 @@ const Employees = () => {
       gender: '',
       birthdate: '',
       hiredate: new Date().toISOString().split('T')[0],
+      sepdate: '',
       deptcode: '',
       jobcode: '',
       salary: 0,
@@ -347,6 +351,7 @@ const Employees = () => {
       gender: '',
       birthdate: '',
       hiredate: '',
+      sepdate: '',
       deptcode: '',
       jobcode: '',
       salary: 0,
@@ -383,6 +388,7 @@ const Employees = () => {
       gender: employee.gender || '',
       birthdate: employee.birthdate || '',
       hiredate: employee.hiredate || '',
+      sepdate: employee.sepdate || '',
       deptcode: jobHistory?.deptcode || '',
       jobcode: jobHistory?.jobcode || '',
       salary: jobHistory?.salary || 0,

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ import { useDepartments, DepartmentFormValues } from '@/hooks/useDepartments';
 const departmentFormSchema = z.object({
   deptname: z.string().min(1, { message: 'Department name is required' }),
   location: z.string().optional(),
+  deptcode: z.string().optional(), // Add deptcode to the schema
 });
 
 const Departments = () => {
@@ -32,20 +34,22 @@ const Departments = () => {
     deleteDepartmentMutation 
   } = useDepartments();
 
-  // Make sure defaultValues match the type with required deptname
-  const addForm = useForm<DepartmentFormValues>({
+  // Update defaultValues to include deptcode
+  const addForm = useForm<DepartmentFormValues & { deptcode?: string }>({
     resolver: zodResolver(departmentFormSchema),
     defaultValues: {
       deptname: '',
       location: '',
+      deptcode: '',
     },
   });
 
-  const editForm = useForm<DepartmentFormValues>({
+  const editForm = useForm<DepartmentFormValues & { deptcode: string }>({
     resolver: zodResolver(departmentFormSchema),
     defaultValues: {
       deptname: '',
       location: '',
+      deptcode: '',
     },
   });
 
@@ -79,6 +83,7 @@ const Departments = () => {
     editForm.reset({
       deptname: department.deptname || '',
       location: '',
+      deptcode: department.deptcode, // Pass deptcode to the form
     });
     setIsEditDialogOpen(true);
   };

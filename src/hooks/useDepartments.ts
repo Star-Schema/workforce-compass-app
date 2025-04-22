@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 export type DepartmentFormValues = {
   deptname: string;       // required
   location?: string;      // optional
+  deptcode?: string;      // optional, used for editing
 };
 
 export const useDepartments = () => {

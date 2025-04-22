@@ -20,11 +20,10 @@ import {
 } from '@/components/ui/form';
 import { UseFormReturn } from 'react-hook-form';
 
-// Add deptcode field for viewing (not editable)
 interface EditDepartmentDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  form: UseFormReturn<{ deptname: string; location?: string }>;
+  form: UseFormReturn<{ deptname: string; location?: string; deptcode: string }>;
   onSubmit: (data: { deptname: string; location?: string }) => void;
   isPending: boolean;
 }
@@ -36,8 +35,8 @@ const EditDepartmentDialog: React.FC<EditDepartmentDialogProps> = ({
   onSubmit,
   isPending,
 }) => {
-  // deptcode will be on form._defaultValues, but if not, fallback ''
-  const deptcode = form.getValues('deptcode') || form._defaultValues.deptcode || '';
+  // Get deptcode directly from the form values
+  const deptcode = form.getValues('deptcode') || '';
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>

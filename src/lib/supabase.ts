@@ -17,3 +17,9 @@ export const hasValidCredentials = () => {
     return false;
   }
 };
+
+// Helper function to handle Supabase errors consistently
+export const handleSupabaseError = (error: any, fallbackMessage = "An error occurred") => {
+  console.error("Supabase error:", error);
+  return error?.message || fallbackMessage;
+};

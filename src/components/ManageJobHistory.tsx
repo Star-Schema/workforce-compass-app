@@ -6,6 +6,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ManageJobHistoryProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ const ManageJobHistory = ({
   const [departments, setDepartments] = useState<{ deptcode: string; deptname: string }[]>([]);
   const [jobs, setJobs] = useState<{ jobcode: string; jobdesc: string }[]>([]);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch job history data when the dialog opens
   useEffect(() => {
@@ -124,6 +126,11 @@ const ManageJobHistory = ({
     setJobs(data || []);
   };
 
+  // Refresh related data in the employees list
+  const refreshEmployeeData = () => {
+    queryClient.invalidateQueries({ queryKey: ['employees'] });
+  };
+
   // Add New Job History
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,7 +145,8 @@ const ManageJobHistory = ({
       toast({ title: "Success", description: "Added job history." });
       setShowAddDialog(false);
       setForm({ effdate: '', deptcode: '', jobcode: '', salary: '' });
-      fetchJobHistory();
+      await fetchJobHistory();
+      refreshEmployeeData(); // Refresh employees data
     } catch (error) {
       toast({
         title: "Error",
@@ -166,7 +174,8 @@ const ManageJobHistory = ({
       toast({ title: "Success", description: "Updated job history." });
       setEditDialogOpenIdx(null);
       setForm({ effdate: '', deptcode: '', jobcode: '', salary: '' });
-      fetchJobHistory();
+      await fetchJobHistory();
+      refreshEmployeeData(); // Refresh employees data
     } catch (error) {
       toast({
         title: "Error",
@@ -188,7 +197,8 @@ const ManageJobHistory = ({
         .eq('deptcode', entry.deptcode);
       toast({ title: "Success", description: "Deleted job history entry." });
       setDeleteDialogOpenIdx(null);
-      fetchJobHistory();
+      await fetchJobHistory();
+      refreshEmployeeData(); // Refresh employees data
     } catch (error) {
       toast({
         title: "Error",

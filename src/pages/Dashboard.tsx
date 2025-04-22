@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { 
   Users, 
   Building, 
   History, 
-  TrendingUp 
+  TrendingUp,
+  Briefcase 
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -41,7 +42,6 @@ const StatCard = ({ title, value, icon, description }: {
 );
 
 const Dashboard = () => {
-  // Fetch employee count
   const { data: employeeCount = 0, isLoading: isLoadingEmployees } = useQuery({
     queryKey: ['employeeCount'],
     queryFn: async () => {
@@ -54,7 +54,6 @@ const Dashboard = () => {
     }
   });
 
-  // Fetch department count
   const { data: departmentCount = 0, isLoading: isLoadingDepartments } = useQuery({
     queryKey: ['departmentCount'],
     queryFn: async () => {
@@ -67,11 +66,9 @@ const Dashboard = () => {
     }
   });
 
-  // Calculate average employee salary
   const { data: avgSalary = '0', isLoading: isLoadingSalary } = useQuery({
     queryKey: ['avgSalary'],
     queryFn: async () => {
-      // Calculate average directly since RPC function might not exist
       const { data, error } = await supabase
         .from('jobhistory')
         .select('salary');
@@ -85,7 +82,19 @@ const Dashboard = () => {
     }
   });
 
-  const isLoading = isLoadingEmployees || isLoadingDepartments || isLoadingSalary;
+  const { data: jobCount = 0, isLoading: isLoadingJobs } = useQuery({
+    queryKey: ['jobCount'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('job')
+        .select('*', { count: 'exact', head: true });
+      
+      if (error) throw error;
+      return count || 0;
+    }
+  });
+
+  const isLoading = isLoadingEmployees || isLoadingDepartments || isLoadingSalary || isLoadingJobs;
 
   return (
     <DashboardLayout>
@@ -105,6 +114,11 @@ const Dashboard = () => {
             title="Departments"
             value={isLoading ? "..." : departmentCount}
             icon={<Building size={20} />}
+          />
+          <StatCard 
+            title="Job Positions"
+            value={isLoading ? "..." : jobCount}
+            icon={<Briefcase size={20} />}
           />
           <StatCard 
             title="Average Salary"

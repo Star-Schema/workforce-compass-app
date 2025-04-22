@@ -601,12 +601,8 @@ const Employees = () => {
                 type="button"
                 variant="ghost"
                 className="w-1/4 text-gray-800 underline bg-transparent hover:bg-gray-100"
-                onClick={() => {
-                  toast({
-                    title: "Information",
-                    description: "Please save the employee first before managing job history.",
-                  });
-                }}
+                disabled
+                title="Save the employee first before managing job history"
               >
                 Manage Job History
               </Button>

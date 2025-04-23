@@ -446,6 +446,7 @@ const Employees = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Employee Number</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Job</TableHead>
                 <TableHead>Department</TableHead>
@@ -457,11 +458,11 @@ const Employees = () => {
             <TableBody>
               {isLoadingEmployees ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4">Loading...</TableCell>
+                  <TableCell colSpan={7} className="text-center py-4">Loading...</TableCell>
                 </TableRow>
               ) : filteredEmployees.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4">No employees found</TableCell>
+                  <TableCell colSpan={7} className="text-center py-4">No employees found</TableCell>
                 </TableRow>
               ) : (
                 filteredEmployees.map((employee: EmployeeWithJobHistory) => {
@@ -471,6 +472,9 @@ const Employees = () => {
                   
                   return (
                     <TableRow key={employee.empno}>
+                      <TableCell>
+                        <div className="font-mono">{employee.empno}</div>
+                      </TableCell>
                       <TableCell>
                         <div className="font-medium">
                           {employee.firstname} {employee.lastname}

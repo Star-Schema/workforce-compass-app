@@ -193,9 +193,39 @@ const Employees = () => {
     },
   });
 
+  // Get the next available employee number
+  const getNextEmployeeNumber = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('employee')
+        .select('empno')
+        .order('empno', { ascending: false })
+        .limit(1);
+      
+      if (error) throw error;
+      
+      let nextNum = 1001; // Start with 1001 if no employees exist
+      
+      if (data && data.length > 0) {
+        // Try to extract the numeric part if it exists
+        const lastEmpNo = data[0].empno;
+        const numericPart = parseInt(lastEmpNo.replace(/\D/g, ''));
+        
+        if (!isNaN(numericPart)) {
+          nextNum = numericPart + 1;
+        }
+      }
+      
+      return nextNum.toString();
+    } catch (error) {
+      console.error("Failed to get next employee number:", error);
+      return Math.floor(1000 + Math.random() * 9000).toString(); // Fallback
+    }
+  };
+
   const addEmployeeMutation = useMutation({
     mutationFn: async (newEmployee: EmployeeFormValues) => {
-      const empno = 'E' + Math.floor(1000 + Math.random() * 9000).toString();
+      const empno = await getNextEmployeeNumber();
       
       const { data: empData, error: empError } = await supabase
         .from('employee')
@@ -525,7 +555,7 @@ const Employees = () => {
             <div className="ml-0.5 mb-2">
               <div className="flex flex-col text-sm">
                 <span className="font-medium">Employee Number</span>
-                <span className="text-gray-500">&lt;auto increment&gt; not editable</span>
+                <span className="text-gray-500">&lt;auto increment&gt; numeric value</span>
               </div>
             </div>
             <div className="flex flex-row gap-4 mb-2">

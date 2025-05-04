@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -20,6 +21,7 @@ import {
 import { Employee, Department, JobHistory, mapEmployeeToDisplay } from '@/types/database';
 import { format } from 'date-fns';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import JobManagement from '@/components/jobs/JobManagement';
 
 const StatCard = ({ title, value, icon, description }: { 
   title: string; 
@@ -125,6 +127,18 @@ const Dashboard = () => {
             value={isLoading ? "..." : avgSalary}
             icon={<TrendingUp size={20} />}
           />
+        </div>
+        
+        {/* Jobs Management Section */}
+        <div className="mt-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Job Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <JobManagement />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </DashboardLayout>

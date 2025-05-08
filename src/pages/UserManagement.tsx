@@ -1,8 +1,9 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { 
@@ -42,8 +43,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { UserPlus, Pencil, Trash2, Lock, Shield, User as UserIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-
-type UserRole = 'admin' | 'user' | 'blocked';
+import { UserRole } from '@/types/database';
 
 interface UserData {
   id: string;
@@ -71,42 +71,53 @@ const UserManagement = () => {
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
-      // Fetch users from supabase auth API (this would require admin privileges)
-      // In a real app, you might need to use a serverless function with admin rights
-      const { data: users, error } = await supabase.auth.admin.listUsers();
-      
-      if (error) {
+      try {
+        // Fetch users from supabase auth API (this requires admin privileges)
+        const { data: users, error } = await supabase.auth.admin.listUsers();
+        
+        if (error) {
+          toast({
+            title: "Error fetching users",
+            description: error.message,
+            variant: "destructive"
+          });
+          return [];
+        }
+
+        // Fetch user roles from our user_roles table
+        const { data: userRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('user_id, role');
+
+        if (rolesError) {
+          console.error("Error fetching user roles:", rolesError);
+        }
+
+        // Map roles to users using a role map
+        const roleMap = new Map();
+        if (userRoles) {
+          userRoles.forEach((item: any) => {
+            roleMap.set(item.user_id, item.role);
+          });
+        }
+
+        // Format and return user data
+        return (users?.users || []).map(user => ({
+          id: user.id,
+          email: user.email || '',
+          role: (roleMap.get(user.id) || 'user') as UserRole,
+          created_at: user.created_at || '',
+          last_sign_in_at: user.last_sign_in_at || '',
+        }));
+      } catch (error: any) {
+        console.error("Error in fetchUsers:", error);
         toast({
           title: "Error fetching users",
-          description: error.message,
+          description: error.message || "An unknown error occurred",
           variant: "destructive"
         });
         return [];
       }
-
-      // Get user roles from your custom table
-      const { data: userRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-
-      if (rolesError) {
-        console.error("Error fetching user roles:", rolesError);
-      }
-
-      // Map roles to users
-      const roleMap = new Map();
-      userRoles?.forEach(item => {
-        roleMap.set(item.user_id, item.role);
-      });
-
-      // Format and return user data
-      return users?.users?.map(user => ({
-        id: user.id,
-        email: user.email || '',
-        role: (roleMap.get(user.id) || 'user') as UserRole,
-        created_at: user.created_at || '',
-        last_sign_in_at: user.last_sign_in_at || '',
-      })) || [];
     },
     refetchOnWindowFocus: false
   });

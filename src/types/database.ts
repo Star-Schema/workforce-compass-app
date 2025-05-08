@@ -35,6 +35,18 @@ export interface DepartmentWithEmployeeCount extends Department {
   employee_count: number;
 }
 
+// User role type definition
+export type UserRole = 'admin' | 'user' | 'blocked';
+
+// User roles table interface
+export interface UserRoles {
+  id: string;
+  user_id: string;
+  role: UserRole;
+  created_at: string;
+  updated_at: string;
+}
+
 // These are helpers for components that expect the newer schema format
 export interface EmployeeDisplay {
   id: string;

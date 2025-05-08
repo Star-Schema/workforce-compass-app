@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Employees from "./pages/Employees";
 import Departments from "./pages/Departments";
 import JobHistory from "./pages/JobHistory";
+import UserManagement from "./pages/UserManagement";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/employees" element={<Employees />} />
             <Route path="/departments" element={<Departments />} />
             <Route path="/job-history" element={<JobHistory />} />
+            <Route path="/user-management" element={<UserManagement />} />
             <Route path="/" element={<Index />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

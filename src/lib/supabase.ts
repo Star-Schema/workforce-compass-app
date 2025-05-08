@@ -7,11 +7,18 @@ import { supabase as integrationSupabase } from '@/integrations/supabase/client'
 export const supabase = integrationSupabase;
 
 // Export a helper function to check if we're using real credentials
-export const hasValidCredentials = () => {
+export const hasValidCredentials = async () => {
   try {
     // Attempt a simple query to check connection
     console.log("Checking Supabase credentials...");
-    return true; // We now have valid credentials
+    const { data, error } = await supabase.from('user_roles').select('id').limit(1);
+    
+    if (error) {
+      console.error("Supabase credential check failed:", error);
+      return false;
+    }
+    
+    return true;
   } catch (error) {
     console.error("Supabase credential check failed:", error);
     return false;

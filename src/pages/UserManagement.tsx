@@ -72,10 +72,8 @@ const UserManagement = () => {
     queryKey: ['users'],
     queryFn: async () => {
       try {
-        // Fetch users from auth.users table
-        const { data: authUsers, error: authError } = await supabase
-          .from('auth.users')
-          .select('id, email, created_at, last_sign_in_at');
+        // First get all users from auth
+        const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
           
         if (authError) {
           console.error("Error fetching users:", authError);
@@ -128,12 +126,12 @@ const UserManagement = () => {
   // Add user mutation
   const addUserMutation = useMutation({
     mutationFn: async ({ email, password, role }: { email: string, password: string, role: UserRole }) => {
-      // Create user with Supabase auth.signUp
+      // Create user with Supabase auth
       const { data: userData, error: userError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirect: window.location.origin
+          emailRedirectTo: window.location.origin
         }
       });
 
@@ -164,7 +162,7 @@ const UserManagement = () => {
     onError: (error: any) => {
       toast({
         title: "Error adding user",
-        description: error.message,
+        description: error.message || "Failed to add user",
         variant: "destructive"
       });
     }

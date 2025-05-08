@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
@@ -41,7 +41,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { UserPlus, Pencil, Trash2, Lock, Shield, User as UserIcon } from 'lucide-react';
+import { UserPlus, Pencil, Trash2, Lock, Shield, UserIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/database';
 
@@ -72,13 +72,16 @@ const UserManagement = () => {
     queryKey: ['users'],
     queryFn: async () => {
       try {
-        // Fetch users from supabase auth API (this requires admin privileges)
-        const { data: users, error } = await supabase.auth.admin.listUsers();
-        
-        if (error) {
+        // Fetch users from auth.users table
+        const { data: authUsers, error: authError } = await supabase
+          .from('auth.users')
+          .select('id, email, created_at, last_sign_in_at');
+          
+        if (authError) {
+          console.error("Error fetching users:", authError);
           toast({
             title: "Error fetching users",
-            description: error.message,
+            description: authError.message,
             variant: "destructive"
           });
           return [];
@@ -102,7 +105,7 @@ const UserManagement = () => {
         }
 
         // Format and return user data
-        return (users?.users || []).map(user => ({
+        return (authUsers || []).map((user: any) => ({
           id: user.id,
           email: user.email || '',
           role: (roleMap.get(user.id) || 'user') as UserRole,
@@ -125,14 +128,18 @@ const UserManagement = () => {
   // Add user mutation
   const addUserMutation = useMutation({
     mutationFn: async ({ email, password, role }: { email: string, password: string, role: UserRole }) => {
-      // Create user
-      const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+      // Create user with Supabase auth.signUp
+      const { data: userData, error: userError } = await supabase.auth.signUp({
         email,
         password,
-        email_confirm: true,
+        options: {
+          emailRedirect: window.location.origin
+        }
       });
 
       if (userError) throw userError;
+
+      if (!userData.user) throw new Error("Failed to create user");
 
       // Set user role
       const { error: roleError } = await supabase
@@ -166,32 +173,15 @@ const UserManagement = () => {
   // Update user role mutation
   const updateUserRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string, role: UserRole }) => {
-      // Check if role record exists
-      const { data: existingRole, error: checkError } = await supabase
+      const { error } = await supabase
         .from('user_roles')
-        .select()
-        .eq('user_id', userId)
-        .single();
-      
-      if (checkError && checkError.code !== 'PGRST116') {
-        throw checkError;
-      }
-
-      // Insert or update role
-      if (!existingRole) {
-        const { error } = await supabase
-          .from('user_roles')
-          .insert({ user_id: userId, role });
+        .upsert({ 
+          user_id: userId, 
+          role,
+          updated_at: new Date().toISOString()
+        });
           
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('user_roles')
-          .update({ role })
-          .eq('user_id', userId);
-          
-        if (error) throw error;
-      }
+      if (error) throw error;
     },
     onSuccess: () => {
       toast({
@@ -214,13 +204,22 @@ const UserManagement = () => {
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await supabase.auth.admin.deleteUser(userId);
+      // We don't have direct access to delete users through the client API,
+      // so we'll disable the account by setting their role to 'blocked'
+      const { error } = await supabase
+        .from('user_roles')
+        .upsert({ 
+          user_id: userId, 
+          role: 'blocked',
+          updated_at: new Date().toISOString()
+        });
+          
       if (error) throw error;
     },
     onSuccess: () => {
       toast({
-        title: "User deleted successfully",
-        description: `User ${selectedUser?.email} has been deleted.`
+        title: "User blocked successfully",
+        description: `User ${selectedUser?.email} has been blocked.`
       });
       setIsDeleteDialogOpen(false);
       setSelectedUser(null);
@@ -228,7 +227,7 @@ const UserManagement = () => {
     },
     onError: (error: any) => {
       toast({
-        title: "Error deleting user",
+        title: "Error blocking user",
         description: error.message,
         variant: "destructive"
       });
@@ -472,8 +471,8 @@ const UserManagement = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete the user account for {selectedUser?.email}.
-                This action cannot be undone.
+                This will block the user account for {selectedUser?.email}.
+                The user will no longer be able to access the system.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -483,7 +482,7 @@ const UserManagement = () => {
                 disabled={deleteUserMutation.isPending}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                {deleteUserMutation.isPending ? "Deleting..." : "Delete User"}
+                {deleteUserMutation.isPending ? "Blocking..." : "Block User"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

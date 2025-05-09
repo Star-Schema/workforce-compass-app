@@ -37,9 +37,11 @@ export const handleSupabaseError = (error: any, fallbackMessage = "An error occu
   return error?.message || fallbackMessage;
 };
 
-// Check if user has a specific role
+// Check if user has a specific role using the security definer function we created
 export const hasRole = async (userId: string, role: string): Promise<boolean> => {
   try {
+    if (!userId) return false;
+    
     const { data, error } = await supabase
       .from('user_roles')
       .select('role')

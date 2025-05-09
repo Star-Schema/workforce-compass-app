@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
@@ -27,12 +28,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const getUser = async () => {
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          return;
-        }
+        // Set up auth state listener FIRST
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          (event, session) => {
+            console.log('Auth state changed:', event, session?.user?.email);
+            if (session?.user) {
+              setUser({
+                id: session.user.id,
+                email: session.user.email || '',
+              });
+            } else {
+              setUser(null);
+            }
+            setIsLoading(false);
+          }
+        );
+
+        // THEN check for existing session
+        const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
           setUser({
@@ -40,35 +53,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             email: session.user.email || '',
           });
         }
+        setIsLoading(false);
+        
+        return () => {
+          if (subscription) {
+            subscription.unsubscribe();
+          }
+        };
       } catch (error) {
         console.error('Error getting user session:', error);
-      } finally {
         setIsLoading(false);
       }
     };
 
     getUser();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
-        if (session?.user) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email || '',
-          });
-        } else {
-          setUser(null);
-        }
-        setIsLoading(false);
-      }
-    );
-
-    return () => {
-      if (authListener && authListener.subscription) {
-        authListener.subscription.unsubscribe();
-      }
-    };
   }, []);
 
   const signIn = async (email: string, password: string) => {

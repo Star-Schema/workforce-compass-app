@@ -66,15 +66,37 @@ const UserManagement = () => {
   
   const queryClient = useQueryClient();
 
-  // Fetch users
+  // Fetch users - SIMPLIFIED APPROACH TO AVOID RLS RECURSION
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
       try {
-        // Fetch user roles from our user_roles table
+        // First check if we are an admin using the security definer function
+        const { data: isAdmin, error: adminCheckError } = await supabase.rpc('is_admin');
+        
+        if (adminCheckError) {
+          console.error("Error checking admin status:", adminCheckError);
+          toast({
+            title: "Error checking permissions",
+            description: adminCheckError.message,
+            variant: "destructive"
+          });
+          return [];
+        }
+
+        if (!isAdmin) {
+          toast({
+            title: "Permission denied",
+            description: "You don't have permission to view user management",
+            variant: "destructive"
+          });
+          return [];
+        }
+
+        // Fetch user roles - this will now work with our security definer function
         const { data: userRoles, error: rolesError } = await supabase
           .from('user_roles')
-          .select('id, user_id, role, created_at');
+          .select('*');
 
         if (rolesError) {
           console.error("Error fetching user roles:", rolesError);
@@ -86,44 +108,19 @@ const UserManagement = () => {
           return [];
         }
 
-        // Get user profile data for each user ID
-        const userProfilePromises = userRoles.map(async (userRole: any) => {
-          const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userRole.user_id);
-          
-          if (userError) {
-            console.error(`Error fetching user profile for ID ${userRole.user_id}:`, userError);
-            return {
-              id: userRole.user_id,
-              email: 'Unknown user',
-              role: userRole.role,
-              created_at: userRole.created_at,
-              last_sign_in_at: null
-            };
-          }
-
+        // For each user role, fetch basic auth user info
+        // Since we can't use admin.getUserById, we'll use auth metadata from the user_roles table
+        const usersData: UserData[] = userRoles.map((role: any) => {
           return {
-            id: userData.user.id,
-            email: userData.user.email || 'No email',
-            role: userRole.role,
-            created_at: userData.user.created_at || userRole.created_at,
-            last_sign_in_at: userData.user.last_sign_in_at
+            id: role.user_id,
+            email: role.user_id, // We'll display user ID as fallback
+            role: role.role as UserRole,
+            created_at: role.created_at,
+            last_sign_in_at: undefined
           };
         });
 
-        try {
-          return await Promise.all(userProfilePromises);
-        } catch (error) {
-          console.error("Error resolving user profile promises:", error);
-          
-          // Return just the role data if we couldn't get user profiles
-          return userRoles.map((userRole: any) => ({
-            id: userRole.user_id,
-            email: 'Unable to load email',
-            role: userRole.role,
-            created_at: userRole.created_at,
-            last_sign_in_at: null
-          }));
-        }
+        return usersData;
       } catch (error: any) {
         console.error("Error in fetchUsers:", error);
         toast({

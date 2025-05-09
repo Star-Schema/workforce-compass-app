@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -72,44 +71,59 @@ const UserManagement = () => {
     queryKey: ['users'],
     queryFn: async () => {
       try {
-        // First get all users from auth
-        const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
-          
-        if (authError) {
-          console.error("Error fetching users:", authError);
+        // Fetch user roles from our user_roles table
+        const { data: userRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('id, user_id, role, created_at');
+
+        if (rolesError) {
+          console.error("Error fetching user roles:", rolesError);
           toast({
             title: "Error fetching users",
-            description: authError.message,
+            description: rolesError.message,
             variant: "destructive"
           });
           return [];
         }
 
-        // Fetch user roles from our user_roles table
-        const { data: userRoles, error: rolesError } = await supabase
-          .from('user_roles')
-          .select('user_id, role');
+        // Get user profile data for each user ID
+        const userProfilePromises = userRoles.map(async (userRole: any) => {
+          const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userRole.user_id);
+          
+          if (userError) {
+            console.error(`Error fetching user profile for ID ${userRole.user_id}:`, userError);
+            return {
+              id: userRole.user_id,
+              email: 'Unknown user',
+              role: userRole.role,
+              created_at: userRole.created_at,
+              last_sign_in_at: null
+            };
+          }
 
-        if (rolesError) {
-          console.error("Error fetching user roles:", rolesError);
+          return {
+            id: userData.user.id,
+            email: userData.user.email || 'No email',
+            role: userRole.role,
+            created_at: userData.user.created_at || userRole.created_at,
+            last_sign_in_at: userData.user.last_sign_in_at
+          };
+        });
+
+        try {
+          return await Promise.all(userProfilePromises);
+        } catch (error) {
+          console.error("Error resolving user profile promises:", error);
+          
+          // Return just the role data if we couldn't get user profiles
+          return userRoles.map((userRole: any) => ({
+            id: userRole.user_id,
+            email: 'Unable to load email',
+            role: userRole.role,
+            created_at: userRole.created_at,
+            last_sign_in_at: null
+          }));
         }
-
-        // Map roles to users using a role map
-        const roleMap = new Map();
-        if (userRoles) {
-          userRoles.forEach((item: any) => {
-            roleMap.set(item.user_id, item.role);
-          });
-        }
-
-        // Format and return user data
-        return (authUsers || []).map((user: any) => ({
-          id: user.id,
-          email: user.email || '',
-          role: (roleMap.get(user.id) || 'user') as UserRole,
-          created_at: user.created_at || '',
-          last_sign_in_at: user.last_sign_in_at || '',
-        }));
       } catch (error: any) {
         console.error("Error in fetchUsers:", error);
         toast({

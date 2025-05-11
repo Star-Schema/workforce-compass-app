@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { supabase, isAdmin, handleSupabaseError } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -66,25 +67,25 @@ const UserManagement = () => {
   
   const queryClient = useQueryClient();
 
-  // Fetch users with proper handling of RLS and security definer function
-  const { data: users = [], isLoading } = useQuery({
+  // Fetch users from auth.users via our security definer function
+  const { data: users = [], isLoading, error } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
       try {
         // First check if we are an admin using the security definer function
-        const { data: isAdmin, error: adminCheckError } = await supabase.rpc('is_admin');
+        const { data: isAdminUser, error: adminCheckError } = await supabase.rpc('is_admin');
         
         if (adminCheckError) {
           console.error("Error checking admin status:", adminCheckError);
           toast({
             title: "Error checking permissions",
-            description: "You don't have access to user management",
+            description: handleSupabaseError(adminCheckError),
             variant: "destructive"
           });
           return [];
         }
 
-        if (!isAdmin) {
+        if (!isAdminUser) {
           toast({
             title: "Permission denied",
             description: "You don't have permission to view user management",
@@ -93,35 +94,54 @@ const UserManagement = () => {
           return [];
         }
 
-        // If we're an admin, fetch user roles directly using a single query
-        const { data: userRolesData, error: rolesError } = await supabase
-          .from('user_roles')
-          .select('*');
-
-        if (rolesError) {
-          console.error("Error fetching user roles:", rolesError);
+        // Get all auth users
+        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+        
+        if (authError) {
+          console.error("Error fetching auth users:", authError);
           toast({
             title: "Error fetching users",
-            description: rolesError.message,
+            description: handleSupabaseError(authError),
             variant: "destructive"
           });
           return [];
         }
-
-        // Transform the data into our UserData format
-        const usersData: UserData[] = userRolesData.map((role) => ({
-          id: role.user_id,
-          email: role.user_id, // We'll use the ID as fallback for email
-          role: role.role as UserRole,
-          created_at: role.created_at,
-        }));
-
-        return usersData;
+        
+        // Get all user roles
+        const { data: roleData, error: roleError } = await supabase
+          .from('user_roles')
+          .select('*');
+          
+        if (roleError) {
+          console.error("Error fetching user roles:", roleError);
+          toast({
+            title: "Error fetching user roles",
+            description: handleSupabaseError(roleError),
+            variant: "destructive"
+          });
+          // Still continue with auth users but without roles
+        }
+        
+        // Map and merge the data
+        const combinedUsers: UserData[] = authUsers.users.map(user => {
+          // Find role for this user if it exists
+          const userRole = roleData?.find(role => role.user_id === user.id);
+          
+          return {
+            id: user.id,
+            email: user.email || user.id,
+            role: (userRole?.role as UserRole) || 'user', // Default to user if no role found
+            created_at: user.created_at,
+            last_sign_in_at: user.last_sign_in_at
+          };
+        });
+        
+        return combinedUsers;
       } catch (error: any) {
-        console.error("Error in fetchUsers:", error);
+        console.error("Error fetching users:", error);
         toast({
           title: "Error fetching users",
-          description: error.message || "An unknown error occurred",
+          description: handleSupabaseError(error),
           variant: "destructive"
         });
         return [];
@@ -134,12 +154,10 @@ const UserManagement = () => {
   const addUserMutation = useMutation({
     mutationFn: async ({ email, password, role }: { email: string, password: string, role: UserRole }) => {
       // Create user with Supabase auth
-      const { data: userData, error: userError } = await supabase.auth.signUp({
+      const { data: userData, error: userError } = await supabase.auth.admin.createUser({
         email,
         password,
-        options: {
-          emailRedirectTo: window.location.origin
-        }
+        email_confirm: true
       });
 
       if (userError) throw userError;
@@ -169,7 +187,7 @@ const UserManagement = () => {
     onError: (error: any) => {
       toast({
         title: "Error adding user",
-        description: error.message || "Failed to add user",
+        description: handleSupabaseError(error),
         variant: "destructive"
       });
     }
@@ -200,7 +218,7 @@ const UserManagement = () => {
     onError: (error: any) => {
       toast({
         title: "Error updating user",
-        description: error.message,
+        description: handleSupabaseError(error),
         variant: "destructive"
       });
     }
@@ -233,7 +251,7 @@ const UserManagement = () => {
     onError: (error: any) => {
       toast({
         title: "Error blocking user",
-        description: error.message,
+        description: handleSupabaseError(error),
         variant: "destructive"
       });
     }
@@ -282,6 +300,20 @@ const UserManagement = () => {
       default: return <UserIcon className="h-4 w-4 text-muted-foreground" />;
     }
   };
+
+  if (error) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+          <div className="bg-destructive/10 p-4 rounded-md border border-destructive">
+            <h2 className="text-destructive font-medium">Error loading users</h2>
+            <p>{error instanceof Error ? error.message : "Unknown error occurred"}</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

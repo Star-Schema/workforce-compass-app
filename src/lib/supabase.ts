@@ -82,3 +82,47 @@ export const isAdmin = async (): Promise<boolean> => {
   }
 };
 
+// New function to fetch all Supabase users for admin purposes
+export const getAllUsers = async () => {
+  try {
+    // First confirm user is an admin
+    const adminStatus = await isAdmin();
+    if (!adminStatus) {
+      throw new Error("You don't have permission to access user data");
+    }
+    
+    // Get users from auth.users through the admin API
+    const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+    
+    if (userError) {
+      throw userError;
+    }
+
+    // Get roles from user_roles table
+    const { data: rolesData, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('*');
+    
+    if (rolesError) {
+      throw rolesError;
+    }
+    
+    // Combine the data
+    const usersWithRoles = userData.users.map(user => {
+      const userRole = rolesData?.find(role => role.user_id === user.id);
+      return {
+        id: user.id,
+        email: user.email,
+        role: userRole?.role || 'user', // Default to 'user' if no role found
+        created_at: user.created_at
+      };
+    });
+    
+    return usersWithRoles;
+  } catch (error) {
+    console.error("Error fetching all users:", error);
+    throw error;
+  }
+};
+
+

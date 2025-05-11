@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -75,13 +76,7 @@ const UserManagement = () => {
   
   const queryClient = useQueryClient();
   
-  // Check if current user is an admin and make admin if needed
-  const { data: isAdminUser = false, isLoading: isCheckingAdmin, refetch: refetchAdminStatus } = useQuery({
-    queryKey: ['admin-status'],
-    queryFn: isAdmin
-  });
-  
-  // Make current user admin mutation
+  // Make current user admin mutation - always accessible
   const makeAdminMutation = useMutation({
     mutationFn: makeCurrentUserAdmin,
     onSuccess: () => {
@@ -90,7 +85,9 @@ const UserManagement = () => {
         title: "Success!",
         description: "Your account is now an admin."
       });
+      // Refetch admin status and users list
       refetchAdminStatus();
+      refetchUsers();
     },
     onError: (error: any) => {
       toast({
@@ -101,21 +98,27 @@ const UserManagement = () => {
     }
   });
 
-  // Automatically make user admin if they're not already and haven't been promoted yet
-  useEffect(() => {
-    if (currentUser && !isAdminUser && !isCheckingAdmin && !adminPromoted) {
-      console.log("Automatically making user admin");
-      makeAdminMutation.mutate();
-    }
-  }, [currentUser, isAdminUser, isCheckingAdmin, adminPromoted]);
+  // Check if current user is an admin
+  const { data: isAdminUser = false, isLoading: isCheckingAdmin, refetch: refetchAdminStatus } = useQuery({
+    queryKey: ['admin-status'],
+    queryFn: isAdmin
+  });
   
-  // Fetch users
+  // Fetch users - always try to fetch regardless of admin status
   const { data: users = [], isLoading, error, refetch: refetchUsers } = useQuery({
     queryKey: ['users'],
     queryFn: getAllUsers,
-    enabled: isAdminUser, // Only fetch if user is admin
+    retry: 3,
     refetchOnWindowFocus: false
   });
+
+  // Automatically make user admin if they're not already
+  useEffect(() => {
+    if (currentUser && !isAdminUser && !adminPromoted) {
+      console.log("Automatically making user admin");
+      makeAdminMutation.mutate();
+    }
+  }, [currentUser, isAdminUser, adminPromoted]);
 
   // Add user mutation
   const addUserMutation = useMutation({
@@ -176,8 +179,6 @@ const UserManagement = () => {
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      // We don't have direct access to delete users through the client API,
-      // so we'll disable the account by setting their role to 'blocked'
       const { error } = await supabase
         .from('user_roles')
         .upsert({ 
@@ -250,35 +251,35 @@ const UserManagement = () => {
     }
   };
 
-  if (!isAdminUser && !isCheckingAdmin) {
-    return (
-      <DashboardLayout>
-        <div className="space-y-6">
+  // Show the user management screen regardless of admin status
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div>
           <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-          <div className="bg-muted p-6 rounded-lg flex flex-col items-center justify-center space-y-4">
-            <Shield className="h-12 w-12 text-muted-foreground" />
-            <h2 className="text-xl font-semibold">Admin Access Required</h2>
-            <p className="text-center text-muted-foreground max-w-md">
-              You need admin privileges to access user management.
-            </p>
-            <Button 
-              onClick={() => makeAdminMutation.mutate()} 
-              disabled={makeAdminMutation.isPending}
-            >
-              <Star className="mr-2 h-4 w-4" />
-              {makeAdminMutation.isPending ? "Making you admin..." : "Make me an admin"}
-            </Button>
-          </div>
+          <p className="text-muted-foreground">Manage user accounts and permissions</p>
         </div>
-      </DashboardLayout>
-    );
-  }
 
-  if (error) {
-    return (
-      <DashboardLayout>
-        <div className="space-y-6">
-          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+        {!isAdminUser && !isCheckingAdmin && (
+          <div className="bg-muted p-6 rounded-lg mb-6">
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <Shield className="h-12 w-12 text-muted-foreground" />
+              <h2 className="text-xl font-semibold">Make yourself an admin</h2>
+              <p className="text-center text-muted-foreground max-w-md">
+                You need admin privileges to manage users. Click the button below to make your account an admin.
+              </p>
+              <Button 
+                onClick={() => makeAdminMutation.mutate()} 
+                disabled={makeAdminMutation.isPending}
+              >
+                <Star className="mr-2 h-4 w-4" />
+                {makeAdminMutation.isPending ? "Making you admin..." : "Make me an admin"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {error && (
           <div className="bg-destructive/10 p-4 rounded-md border border-destructive">
             <h2 className="text-destructive font-medium">Error loading users</h2>
             <p>{error instanceof Error ? error.message : "Unknown error occurred"}</p>
@@ -290,18 +291,7 @@ const UserManagement = () => {
               Try Again
             </Button>
           </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-          <p className="text-muted-foreground">Manage user accounts and permissions</p>
-        </div>
+        )}
 
         <div className="flex justify-between items-center">
           <div>

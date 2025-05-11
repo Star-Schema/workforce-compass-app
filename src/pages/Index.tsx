@@ -17,7 +17,7 @@ const Index = () => {
     );
   }
   
-  // Redirect to dashboard if logged in, otherwise to login page
+  // Always redirect to dashboard if logged in, otherwise to login page
   return <Navigate to={user ? "/dashboard" : "/login"} replace />;
 };
 

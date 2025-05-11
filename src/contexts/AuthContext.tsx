@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { makeCurrentUserAdmin } from '@/lib/supabase';
 
 type User = {
   id: string;
@@ -38,6 +39,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 id: session.user.id,
                 email: session.user.email || '',
               });
+              
+              // Make user admin when they log in
+              if (event === 'SIGNED_IN') {
+                console.log('Making user admin after login');
+                makeCurrentUserAdmin()
+                  .then(success => {
+                    if (success) {
+                      console.log('User is now admin');
+                    }
+                  })
+                  .catch(error => console.error('Error making user admin:', error));
+              }
             } else {
               setUser(null);
               
@@ -59,6 +72,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: session.user.id,
             email: session.user.email || '',
           });
+          
+          // Make existing user admin
+          console.log('Making existing user admin during session check');
+          try {
+            const success = await makeCurrentUserAdmin();
+            if (success) {
+              console.log('Existing user is now admin');
+            }
+          } catch (error) {
+            console.error('Error making existing user admin:', error);
+          }
+          
+          // Redirect to dashboard if on login page
+          if (location.pathname === '/login') {
+            navigate('/dashboard');
+          }
         } else if (location.pathname !== '/login' && location.pathname !== '/signup') {
           // If no session and not on login/signup page, redirect to login
           navigate('/login');

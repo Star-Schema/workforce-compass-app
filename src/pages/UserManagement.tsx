@@ -1,7 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase, isAdmin, handleSupabaseError } from '@/lib/supabase';
+import { 
+  supabase, 
+  isAdmin, 
+  handleSupabaseError, 
+  getAllUsers, 
+  createUser,
+  makeCurrentUserAdmin
+} from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -21,6 +28,7 @@ import {
   DialogTitle,
   DialogFooter,
   DialogTrigger,
+  DialogClose
 } from '@/components/ui/dialog';
 import { 
   AlertDialog,
@@ -41,7 +49,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { UserPlus, Pencil, Trash2, Lock, Shield, UserIcon } from 'lucide-react';
+import { UserPlus, Pencil, Trash2, Lock, Shield, UserIcon, Star } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/database';
 
@@ -66,112 +74,44 @@ const UserManagement = () => {
   const [editUserRole, setEditUserRole] = useState<UserRole>('user');
   
   const queryClient = useQueryClient();
-
-  // Fetch users from auth.users via our security definer function
-  const { data: users = [], isLoading, error } = useQuery({
+  
+  // Check if current user is an admin and make admin if needed
+  const { data: isAdminUser = false, isLoading: isCheckingAdmin, refetch: refetchAdminStatus } = useQuery({
+    queryKey: ['admin-status'],
+    queryFn: isAdmin
+  });
+  
+  // Fetch users
+  const { data: users = [], isLoading, error, refetch: refetchUsers } = useQuery({
     queryKey: ['users'],
-    queryFn: async () => {
-      try {
-        // First check if we are an admin using the security definer function
-        const { data: isAdminUser, error: adminCheckError } = await supabase.rpc('is_admin');
-        
-        if (adminCheckError) {
-          console.error("Error checking admin status:", adminCheckError);
-          toast({
-            title: "Error checking permissions",
-            description: handleSupabaseError(adminCheckError),
-            variant: "destructive"
-          });
-          return [];
-        }
-
-        if (!isAdminUser) {
-          toast({
-            title: "Permission denied",
-            description: "You don't have permission to view user management",
-            variant: "destructive"
-          });
-          return [];
-        }
-
-        // Get all auth users
-        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-        
-        if (authError) {
-          console.error("Error fetching auth users:", authError);
-          toast({
-            title: "Error fetching users",
-            description: handleSupabaseError(authError),
-            variant: "destructive"
-          });
-          return [];
-        }
-        
-        // Get all user roles
-        const { data: roleData, error: roleError } = await supabase
-          .from('user_roles')
-          .select('*');
-          
-        if (roleError) {
-          console.error("Error fetching user roles:", roleError);
-          toast({
-            title: "Error fetching user roles",
-            description: handleSupabaseError(roleError),
-            variant: "destructive"
-          });
-          // Still continue with auth users but without roles
-        }
-        
-        // Map and merge the data
-        const combinedUsers: UserData[] = authUsers.users.map(user => {
-          // Find role for this user if it exists
-          const userRole = roleData?.find(role => role.user_id === user.id);
-          
-          return {
-            id: user.id,
-            email: user.email || user.id,
-            role: (userRole?.role as UserRole) || 'user', // Default to user if no role found
-            created_at: user.created_at,
-            last_sign_in_at: user.last_sign_in_at
-          };
-        });
-        
-        return combinedUsers;
-      } catch (error: any) {
-        console.error("Error fetching users:", error);
-        toast({
-          title: "Error fetching users",
-          description: handleSupabaseError(error),
-          variant: "destructive"
-        });
-        return [];
-      }
-    },
+    queryFn: getAllUsers,
+    enabled: isAdminUser, // Only fetch if user is admin
     refetchOnWindowFocus: false
+  });
+
+  // Make current user admin mutation
+  const makeAdminMutation = useMutation({
+    mutationFn: makeCurrentUserAdmin,
+    onSuccess: () => {
+      toast({
+        title: "Success!",
+        description: "Your account is now an admin."
+      });
+      refetchAdminStatus();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error making user admin",
+        description: handleSupabaseError(error),
+        variant: "destructive"
+      });
+    }
   });
 
   // Add user mutation
   const addUserMutation = useMutation({
     mutationFn: async ({ email, password, role }: { email: string, password: string, role: UserRole }) => {
-      // Create user with Supabase auth
-      const { data: userData, error: userError } = await supabase.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true
-      });
-
-      if (userError) throw userError;
-
-      if (!userData.user) throw new Error("Failed to create user");
-
-      // Set user role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({ user_id: userData.user.id, role });
-
-      if (roleError) throw roleError;
-
-      return userData.user;
+      return await createUser(email, password, role);
     },
     onSuccess: () => {
       toast({
@@ -301,6 +241,30 @@ const UserManagement = () => {
     }
   };
 
+  if (!isAdminUser && !isCheckingAdmin) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+          <div className="bg-muted p-6 rounded-lg flex flex-col items-center justify-center space-y-4">
+            <Shield className="h-12 w-12 text-muted-foreground" />
+            <h2 className="text-xl font-semibold">Admin Access Required</h2>
+            <p className="text-center text-muted-foreground max-w-md">
+              You need admin privileges to access user management.
+            </p>
+            <Button 
+              onClick={() => makeAdminMutation.mutate()} 
+              disabled={makeAdminMutation.isPending}
+            >
+              <Star className="mr-2 h-4 w-4" />
+              {makeAdminMutation.isPending ? "Making you admin..." : "Make me an admin"}
+            </Button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   if (error) {
     return (
       <DashboardLayout>
@@ -309,6 +273,13 @@ const UserManagement = () => {
           <div className="bg-destructive/10 p-4 rounded-md border border-destructive">
             <h2 className="text-destructive font-medium">Error loading users</h2>
             <p>{error instanceof Error ? error.message : "Unknown error occurred"}</p>
+            <Button 
+              variant="outline" 
+              className="mt-4"
+              onClick={() => refetchUsers()}
+            >
+              Try Again
+            </Button>
           </div>
         </div>
       </DashboardLayout>
@@ -359,6 +330,7 @@ const UserManagement = () => {
                     value={newUserPassword}
                     onChange={(e) => setNewUserPassword(e.target.value)}
                     required
+                    minLength={6}
                     placeholder="••••••••"
                   />
                 </div>
@@ -379,6 +351,9 @@ const UserManagement = () => {
                   </Select>
                 </div>
                 <DialogFooter>
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline">Cancel</Button>
+                  </DialogClose>
                   <Button
                     type="submit"
                     disabled={addUserMutation.isPending}

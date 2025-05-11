@@ -34,6 +34,10 @@ export const handleSupabaseError = (error: any, fallbackMessage = "An error occu
     return "You don't have permission to access this resource. Please make sure you're logged in with the correct account.";
   }
   
+  if (error?.message?.includes("infinite recursion")) {
+    return "A database policy error occurred. Please contact the system administrator.";
+  }
+  
   return error?.message || fallbackMessage;
 };
 
@@ -63,12 +67,18 @@ export const hasRole = async (userId: string, role: string): Promise<boolean> =>
 // Check if current user is an admin
 export const isAdmin = async (): Promise<boolean> => {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return false;
+    // Use the is_admin security definer function to avoid recursion issues
+    const { data, error } = await supabase.rpc('is_admin');
     
-    return hasRole(session.user.id, 'admin');
+    if (error) {
+      console.error("Error in isAdmin:", error);
+      return false;
+    }
+    
+    return !!data;
   } catch (error) {
     console.error("Error in isAdmin:", error);
     return false;
   }
 };
+

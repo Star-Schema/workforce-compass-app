@@ -66,7 +66,7 @@ const UserManagement = () => {
   
   const queryClient = useQueryClient();
 
-  // Fetch users - SIMPLIFIED APPROACH TO AVOID RLS RECURSION
+  // Fetch users with proper handling of RLS and security definer function
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
@@ -78,7 +78,7 @@ const UserManagement = () => {
           console.error("Error checking admin status:", adminCheckError);
           toast({
             title: "Error checking permissions",
-            description: adminCheckError.message,
+            description: "You don't have access to user management",
             variant: "destructive"
           });
           return [];
@@ -93,8 +93,8 @@ const UserManagement = () => {
           return [];
         }
 
-        // Fetch user roles - this will now work with our security definer function
-        const { data: userRoles, error: rolesError } = await supabase
+        // If we're an admin, fetch user roles directly using a single query
+        const { data: userRolesData, error: rolesError } = await supabase
           .from('user_roles')
           .select('*');
 
@@ -108,17 +108,13 @@ const UserManagement = () => {
           return [];
         }
 
-        // For each user role, fetch basic auth user info
-        // Since we can't use admin.getUserById, we'll use auth metadata from the user_roles table
-        const usersData: UserData[] = userRoles.map((role: any) => {
-          return {
-            id: role.user_id,
-            email: role.user_id, // We'll display user ID as fallback
-            role: role.role as UserRole,
-            created_at: role.created_at,
-            last_sign_in_at: undefined
-          };
-        });
+        // Transform the data into our UserData format
+        const usersData: UserData[] = userRolesData.map((role) => ({
+          id: role.user_id,
+          email: role.user_id, // We'll use the ID as fallback for email
+          role: role.role as UserRole,
+          created_at: role.created_at,
+        }));
 
         return usersData;
       } catch (error: any) {
@@ -367,23 +363,22 @@ const UserManagement = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Email</TableHead>
+                <TableHead>Email/ID</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Created</TableHead>
-                <TableHead>Last Login</TableHead>
                 <TableHead className="w-[100px] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={4} className="text-center py-8">
                     Loading users...
                   </TableCell>
                 </TableRow>
               ) : users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={4} className="text-center py-8">
                     No users found
                   </TableCell>
                 </TableRow>
@@ -398,11 +393,6 @@ const UserManagement = () => {
                       </div>
                     </TableCell>
                     <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      {user.last_sign_in_at 
-                        ? new Date(user.last_sign_in_at).toLocaleDateString() 
-                        : 'Never'}
-                    </TableCell>
                     <TableCell className="text-right space-x-2">
                       {/* Don't allow current user to edit themselves */}
                       {currentUser?.id !== user.id && (
@@ -439,9 +429,9 @@ const UserManagement = () => {
             </DialogHeader>
             <form onSubmit={handleEditUser} className="space-y-4 py-4">
               <div className="grid gap-2">
-                <Label>Email</Label>
+                <Label>Email/ID</Label>
                 <Input
-                  type="email"
+                  type="text"
                   value={selectedUser?.email || ''}
                   disabled
                 />

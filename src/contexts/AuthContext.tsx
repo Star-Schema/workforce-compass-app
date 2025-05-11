@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 type User = {
   id: string;
@@ -24,6 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const getUser = async () => {
@@ -39,6 +40,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               });
             } else {
               setUser(null);
+              
+              // Redirect to login if on a protected page and not already there
+              const protectedPaths = ['/dashboard', '/user-management', '/employees', '/departments', '/job-history'];
+              if (protectedPaths.some(path => location.pathname.startsWith(path))) {
+                navigate('/login');
+              }
             }
             setIsLoading(false);
           }
@@ -52,7 +59,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: session.user.id,
             email: session.user.email || '',
           });
+        } else if (location.pathname !== '/login' && location.pathname !== '/signup') {
+          // If no session and not on login/signup page, redirect to login
+          navigate('/login');
         }
+        
         setIsLoading(false);
         
         return () => {
@@ -67,7 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     getUser();
-  }, []);
+  }, [navigate, location]);
 
   const signIn = async (email: string, password: string) => {
     try {

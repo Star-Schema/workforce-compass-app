@@ -38,6 +38,10 @@ export const handleSupabaseError = (error: any, fallbackMessage = "An error occu
   if (error?.message?.includes("infinite recursion")) {
     return "A database policy error occurred. Please contact the system administrator.";
   }
+
+  if (error?.message?.includes("not_admin")) {
+    return "You don't have admin privileges to perform this action.";
+  }
   
   return error?.message || fallbackMessage;
 };
@@ -92,6 +96,8 @@ export const makeCurrentUserAdmin = async (): Promise<boolean> => {
       console.error("Error getting current user:", userError);
       return false;
     }
+
+    console.log("Making user an admin:", userData.user.id);
     
     // Insert or update the current user's role to admin
     const { error } = await supabase
@@ -114,31 +120,30 @@ export const makeCurrentUserAdmin = async (): Promise<boolean> => {
   }
 };
 
-// Modified function to get all users with their roles
+// Get all users from auth.users table and join with user_roles
 export const getAllUsers = async () => {
   try {
-    // Verify user is an admin
+    console.log("Fetching all users");
+    
+    // First verify user is an admin using our RPC function
     const adminStatus = await isAdmin();
+    
     if (!adminStatus) {
       throw new Error("You don't have permission to access user data");
     }
 
-    // Get current session so we can access all users
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session) {
-      throw new Error("No active session");
+    // Get current session user for basic information
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error("Not authenticated");
     }
 
-    // Get all users from auth
-    // Use this approach to avoid admin API permissions issues
-    const { data: { users: allUsers }, error: usersError } = await supabase.auth.admin.listUsers({
-      page: 1,
-      perPage: 100,
-    });
+    // Get user data from auth.users via our client API
+    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
     
-    if (usersError) {
-      console.error("Error fetching users:", usersError);
-      throw usersError;
+    if (authError) {
+      console.error("Error fetching auth users:", authError);
+      throw authError;
     }
 
     // Get user roles from user_roles table
@@ -157,16 +162,31 @@ export const getAllUsers = async () => {
       roleMap.set(item.user_id, item.role);
     });
 
-    // Combine the data
-    const usersWithRoles = allUsers.map(user => ({
-      id: user.id,
-      email: user.email || user.id,
-      role: roleMap.get(user.id) || 'user',
-      created_at: user.created_at,
-      last_sign_in_at: user.last_sign_in_at
-    }));
+    // Add current user to the list if not present
+    if (authUsers?.users) {
+      // Ensure the current user has a role
+      const currentUserHasRole = roleMap.has(user.id);
+      
+      if (!currentUserHasRole) {
+        // Automatically make current user an admin if they don't have a role
+        await makeCurrentUserAdmin();
+        roleMap.set(user.id, 'admin');
+      }
+
+      // Combine the data
+      const usersWithRoles = authUsers.users.map(authUser => ({
+        id: authUser.id,
+        email: authUser.email || authUser.id,
+        role: roleMap.get(authUser.id) || 'user',
+        created_at: authUser.created_at,
+        last_sign_in_at: authUser.last_sign_in_at
+      }));
+
+      console.log(`Found ${usersWithRoles.length} users`);
+      return usersWithRoles;
+    }
     
-    return usersWithRoles;
+    return [];
   } catch (error) {
     console.error("Error fetching all users:", error);
     throw error;

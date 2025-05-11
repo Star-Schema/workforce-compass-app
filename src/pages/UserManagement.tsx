@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -72,6 +71,7 @@ const UserManagement = () => {
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState<UserRole>('user');
   const [editUserRole, setEditUserRole] = useState<UserRole>('user');
+  const [adminPromoted, setAdminPromoted] = useState(false);
   
   const queryClient = useQueryClient();
   
@@ -81,18 +81,11 @@ const UserManagement = () => {
     queryFn: isAdmin
   });
   
-  // Fetch users
-  const { data: users = [], isLoading, error, refetch: refetchUsers } = useQuery({
-    queryKey: ['users'],
-    queryFn: getAllUsers,
-    enabled: isAdminUser, // Only fetch if user is admin
-    refetchOnWindowFocus: false
-  });
-
   // Make current user admin mutation
   const makeAdminMutation = useMutation({
     mutationFn: makeCurrentUserAdmin,
     onSuccess: () => {
+      setAdminPromoted(true);
       toast({
         title: "Success!",
         description: "Your account is now an admin."
@@ -106,6 +99,22 @@ const UserManagement = () => {
         variant: "destructive"
       });
     }
+  });
+
+  // Automatically make user admin if they're not already and haven't been promoted yet
+  useEffect(() => {
+    if (currentUser && !isAdminUser && !isCheckingAdmin && !adminPromoted) {
+      console.log("Automatically making user admin");
+      makeAdminMutation.mutate();
+    }
+  }, [currentUser, isAdminUser, isCheckingAdmin, adminPromoted]);
+  
+  // Fetch users
+  const { data: users = [], isLoading, error, refetch: refetchUsers } = useQuery({
+    queryKey: ['users'],
+    queryFn: getAllUsers,
+    enabled: isAdminUser, // Only fetch if user is admin
+    refetchOnWindowFocus: false
   });
 
   // Add user mutation

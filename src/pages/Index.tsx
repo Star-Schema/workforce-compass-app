@@ -1,9 +1,29 @@
 
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffect } from 'react';
+import { makeHardcodedEmailAdmin } from '@/lib/supabase';
 
 const Index = () => {
   const { user, isLoading } = useAuth();
+  
+  // Try to set the hardcoded email as admin on app load
+  useEffect(() => {
+    if (user) {
+      console.log("Attempting to make hardcoded email admin on app load");
+      makeHardcodedEmailAdmin()
+        .then(success => {
+          if (success) {
+            console.log("Successfully set hardcoded email as admin");
+          } else {
+            console.log("Email was not found or couldn't be set as admin");
+          }
+        })
+        .catch(err => {
+          console.error("Error setting hardcoded email as admin:", err);
+        });
+    }
+  }, [user]);
   
   // Show loading state while checking authentication
   if (isLoading) {

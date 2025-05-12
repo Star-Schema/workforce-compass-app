@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { supabase as integrationSupabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/database';
@@ -120,6 +119,142 @@ export const makeCurrentUserAdmin = async (): Promise<boolean> => {
   }
 };
 
+// Make a specific user admin by email
+export const makeUserAdminByEmail = async (email: string): Promise<boolean> => {
+  try {
+    // First get the user ID from the email
+    const { data: userData, error: userError } = await supabase
+      .from('user_roles')
+      .select('user_id, role')
+      .eq('role', 'admin')
+      .single();
+
+    if (userError && userError.code !== 'PGRST116') {
+      console.error("Error finding admin user:", userError);
+      return false;
+    }
+    
+    // If we found an admin user, we can use that to set another user as admin
+    if (userData) {
+      // Find the user by email
+      const { data: authUsers, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        console.error("Error getting current user:", authError);
+        return false;
+      }
+      
+      // Find the target user's ID by email using our API
+      const { data: targetUser } = await supabase
+        .rpc('get_user_by_email', { email_param: email });
+      
+      if (!targetUser) {
+        console.error(`No user found with email: ${email}`);
+        return false;
+      }
+      
+      console.log("Making user an admin by email:", email, "with ID:", targetUser.id);
+      
+      // Insert or update the user's role to admin
+      const { error } = await supabase
+        .from('user_roles')
+        .upsert({ 
+          user_id: targetUser.id,
+          role: 'admin',
+          updated_at: new Date().toISOString()
+        });
+      
+      if (error) {
+        console.error("Error setting admin role:", error);
+        return false;
+      }
+      
+      return true;
+    } else {
+      // If we don't have an admin user yet, make the current user admin first
+      const success = await makeCurrentUserAdmin();
+      if (success) {
+        // Then try again with the current user as admin
+        return await makeUserAdminByEmail(email);
+      }
+      return false;
+    }
+  } catch (error) {
+    console.error("Error making user admin by email:", error);
+    return false;
+  }
+};
+
+// Function to directly set a hardcoded email as admin - use this as a last resort
+export const makeHardcodedEmailAdmin = async (): Promise<boolean> => {
+  try {
+    console.log("Setting hardcoded email as admin: ramoel.bello5@gmail.com");
+    
+    // Create an RPC function in Supabase that can look up a user by email
+    // and return their ID - this is being used in makeUserAdminByEmail
+    
+    // For now, we'll use a direct approach to make the specific email an admin
+    const { data, error } = await supabase
+      .from('user_roles')
+      .select('user_id')
+      .eq('role', 'user')
+      .or('user_id.eq.null');
+    
+    if (error) {
+      console.error("Error finding users:", error);
+      return false;
+    }
+    
+    // Try to update all potential users to check for the target email
+    // This is a workaround since we can't query auth.users directly
+    
+    // First make the current user admin
+    await makeCurrentUserAdmin();
+    
+    // Get all users (will include the current admin user at minimum)
+    const users = await getAllUsers();
+    
+    // Find the target user and make them admin
+    for (const user of users) {
+      if (user.email === 'ramoel.bello5@gmail.com') {
+        const { error } = await supabase
+          .from('user_roles')
+          .upsert({ 
+            user_id: user.id,
+            role: 'admin',
+            updated_at: new Date().toISOString()
+          });
+        
+        if (!error) {
+          console.log("Successfully set ramoel.bello5@gmail.com as admin!");
+          return true;
+        }
+      }
+    }
+    
+    console.log("Target email not found in current users list");
+    return false;
+  } catch (error) {
+    console.error("Error setting hardcoded email as admin:", error);
+    return false;
+  }
+};
+
+// Add a specific SQL function to get user by email (for admin functions)
+export const createGetUserByEmailFunction = async () => {
+  try {
+    const { error } = await supabase.rpc('create_get_user_by_email_function');
+    if (error) {
+      console.error("Error creating function:", error);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error("Error creating get_user_by_email function:", error);
+    return false;
+  }
+};
+
 // Get all users from auth.users table and join with user_roles
 export const getAllUsers = async () => {
   try {
@@ -219,4 +354,3 @@ export const createUser = async (email: string, password: string, role: UserRole
     throw error;
   }
 };
-

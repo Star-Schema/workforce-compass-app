@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -7,7 +6,8 @@ import {
   handleSupabaseError, 
   getAllUsers, 
   createUser,
-  makeCurrentUserAdmin
+  makeCurrentUserAdmin,
+  makeHardcodedEmailAdmin
 } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -48,7 +48,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { UserPlus, Pencil, Trash2, Lock, Shield, UserIcon, Star } from 'lucide-react';
+import { UserPlus, Pencil, Trash2, Lock, Shield, UserIcon, Star, Mail } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/database';
 
@@ -72,10 +72,11 @@ const UserManagement = () => {
   const [newUserRole, setNewUserRole] = useState<UserRole>('user');
   const [editUserRole, setEditUserRole] = useState<UserRole>('user');
   const [adminPromoted, setAdminPromoted] = useState(false);
+  const [specificEmailAdded, setSpecificEmailAdded] = useState(false);
   
   const queryClient = useQueryClient();
-  
-  // Make current user admin mutation - always accessible
+
+  // Make current user admin mutation
   const makeAdminMutation = useMutation({
     mutationFn: makeCurrentUserAdmin,
     onSuccess: () => {
@@ -91,6 +92,35 @@ const UserManagement = () => {
     onError: (error: any) => {
       toast({
         title: "Error making user admin",
+        description: handleSupabaseError(error),
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Make specific email admin mutation
+  const makeSpecificEmailAdminMutation = useMutation({
+    mutationFn: makeHardcodedEmailAdmin,
+    onSuccess: (success) => {
+      if (success) {
+        setSpecificEmailAdded(true);
+        toast({
+          title: "Success!",
+          description: "ramoel.bello5@gmail.com is now an admin."
+        });
+      } else {
+        toast({
+          title: "Not found",
+          description: "Could not find ramoel.bello5@gmail.com in the users list.",
+          variant: "destructive"
+        });
+      }
+      // Refetch users list
+      refetchUsers();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error setting specific email as admin",
         description: handleSupabaseError(error),
         variant: "destructive"
       });
@@ -277,6 +307,28 @@ const UserManagement = () => {
             </div>
           </div>
         )}
+        
+        {/* New special button for making ramoel.bello5@gmail.com admin */}
+        <div className="bg-blue-50 p-6 rounded-lg mb-6 border border-blue-200">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <Mail className="h-12 w-12 text-blue-500" />
+            <h2 className="text-xl font-semibold">Make ramoel.bello5@gmail.com an admin</h2>
+            <p className="text-center text-muted-foreground max-w-md">
+              Click the button below to make ramoel.bello5@gmail.com an admin user.
+            </p>
+            <Button 
+              onClick={() => makeSpecificEmailAdminMutation.mutate()} 
+              disabled={makeSpecificEmailAdminMutation.isPending || specificEmailAdded}
+              variant="outline"
+              className="bg-blue-100 hover:bg-blue-200 border-blue-300"
+            >
+              <Shield className="mr-2 h-4 w-4" />
+              {specificEmailAdded ? "Email set as admin" : 
+               makeSpecificEmailAdminMutation.isPending ? "Setting as admin..." : 
+               "Make ramoel.bello5@gmail.com admin"}
+            </Button>
+          </div>
+        </div>
 
         {error && (
           <div className="bg-destructive/10 p-4 rounded-md border border-destructive">
@@ -390,7 +442,9 @@ const UserManagement = () => {
               ) : (
                 users.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell>{user.email}</TableCell>
+                    <TableCell className={user.email === 'ramoel.bello5@gmail.com' ? 'font-bold text-blue-600' : ''}>
+                      {user.email}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {getRoleIcon(user.role)}

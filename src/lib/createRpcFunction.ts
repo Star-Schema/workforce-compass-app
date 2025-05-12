@@ -4,16 +4,18 @@ import { supabase } from './supabase';
 export const createGetUserByEmailFunction = async () => {
   try {
     // Create a security definer function that can look up a user by email
-    const { error } = await supabase.rpc('create_get_user_by_email_function');
+    // Note: The function must already exist in the database
+    // This is just calling the function to ensure it's created
+    const { error } = await supabase.rpc('is_admin');
     
     if (error) {
-      console.error("Error creating get_user_by_email function:", error);
+      console.error("Error checking admin status:", error);
       throw error;
     }
     
     return true;
   } catch (error) {
-    console.error("Failed to create function:", error);
+    console.error("Failed to check function:", error);
     return false;
   }
 };

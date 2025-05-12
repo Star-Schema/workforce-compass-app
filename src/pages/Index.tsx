@@ -3,9 +3,11 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 import { makeHardcodedEmailAdmin } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const { user, isLoading } = useAuth();
+  const { toast } = useToast();
   
   // Try to set the hardcoded email as admin on app load
   useEffect(() => {
@@ -15,6 +17,10 @@ const Index = () => {
         .then(success => {
           if (success) {
             console.log("Successfully set hardcoded email as admin");
+            toast({
+              title: "Admin User Set",
+              description: "ramoel.bello5@gmail.com has been set as admin"
+            });
           } else {
             console.log("Email was not found or couldn't be set as admin");
           }

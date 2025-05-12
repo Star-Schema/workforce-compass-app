@@ -190,33 +190,30 @@ export const makeHardcodedEmailAdmin = async (): Promise<boolean> => {
   try {
     console.log("Setting hardcoded email as admin: ramoel.bello5@gmail.com");
     
-    // Create an RPC function in Supabase that can look up a user by email
-    // and return their ID - this is being used in makeUserAdminByEmail
-    
-    // For now, we'll use a direct approach to make the specific email an admin
-    const { data, error } = await supabase
-      .from('user_roles')
-      .select('user_id')
-      .eq('role', 'user')
-      .or('user_id.eq.null');
-    
-    if (error) {
-      console.error("Error finding users:", error);
+    // First make the current user admin to ensure we have admin privileges
+    const adminSuccess = await makeCurrentUserAdmin();
+    if (!adminSuccess) {
+      console.error("Failed to make current user admin first");
       return false;
     }
     
-    // Try to update all potential users to check for the target email
-    // This is a workaround since we can't query auth.users directly
-    
-    // First make the current user admin
-    await makeCurrentUserAdmin();
-    
     // Get all users (will include the current admin user at minimum)
-    const users = await getAllUsers();
+    const { data: users } = await supabase.from('auth.users').select('*');
+    if (!users) {
+      console.error("Failed to fetch users");
+      return false;
+    }
+    
+    // Now that we have admin privileges, try to fetch all auth users
+    // Use our existing getAllUsers function
+    const allUsers = await getAllUsers();
     
     // Find the target user and make them admin
-    for (const user of users) {
+    for (const user of allUsers) {
       if (user.email === 'ramoel.bello5@gmail.com') {
+        console.log("Found target user:", user.id);
+        
+        // Set this user as admin
         const { error } = await supabase
           .from('user_roles')
           .upsert({ 
@@ -225,10 +222,13 @@ export const makeHardcodedEmailAdmin = async (): Promise<boolean> => {
             updated_at: new Date().toISOString()
           });
         
-        if (!error) {
-          console.log("Successfully set ramoel.bello5@gmail.com as admin!");
-          return true;
+        if (error) {
+          console.error("Error setting admin role:", error);
+          return false;
         }
+        
+        console.log("Successfully set ramoel.bello5@gmail.com as admin!");
+        return true;
       }
     }
     

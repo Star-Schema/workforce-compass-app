@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 import { makeHardcodedEmailAdmin } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import MakeAdminSection from '@/components/MakeAdminSection';
 
 const Index = () => {
   const { user, isLoading } = useAuth();
@@ -31,6 +32,11 @@ const Index = () => {
     }
   }, [user]);
   
+  // If user isn't logged in, redirect to login page
+  if (!isLoading && !user) {
+    return <Navigate to="/login" replace />;
+  }
+  
   // Show loading state while checking authentication
   if (isLoading) {
     return (
@@ -43,8 +49,26 @@ const Index = () => {
     );
   }
   
-  // Always redirect to dashboard if logged in, otherwise to login page
-  return <Navigate to={user ? "/dashboard" : "/login"} replace />;
+  // If user is logged in but we're not redirecting, show make admin component
+  if (user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-6">
+        <div className="w-full max-w-xl">
+          <h1 className="text-3xl font-bold mb-6 text-center">HR System Admin Setup</h1>
+          <MakeAdminSection onSuccess={() => toast({
+            title: "Success",
+            description: "Admin user has been configured. You can now use the system."
+          })} />
+          <div className="mt-6 text-center">
+            <Navigate to="/dashboard" replace />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Fallback to dashboard if logged in
+  return <Navigate to="/dashboard" replace />;
 };
 
 export default Index;

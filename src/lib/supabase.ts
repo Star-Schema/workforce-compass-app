@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { supabase as integrationSupabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/database';
@@ -122,7 +123,7 @@ export const makeCurrentUserAdmin = async (): Promise<boolean> => {
 // Make a specific user admin by email
 export const makeUserAdminByEmail = async (email: string): Promise<boolean> => {
   try {
-    // First get the user ID from the email
+    // First get an admin user to have permissions
     const { data: userData, error: userError } = await supabase
       .from('user_roles')
       .select('user_id, role')
@@ -136,17 +137,6 @@ export const makeUserAdminByEmail = async (email: string): Promise<boolean> => {
     
     // If we found an admin user, we can use that to set another user as admin
     if (userData) {
-      // Find the user by email
-      const { data: authUsers, error: authError } = await supabase.auth.getUser();
-      
-      if (authError) {
-        console.error("Error getting current user:", authError);
-        return false;
-      }
-      
-      // Try to find the user by email using our API
-      // Note: We don't have direct access to auth.users so this won't work
-      // Keeping the structure for future reference
       console.log("Note: This function can't directly look up users by email due to permission limitations");
       
       // We'll need to rely on application-level permissions for this

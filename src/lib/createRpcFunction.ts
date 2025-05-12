@@ -1,11 +1,10 @@
 
 import { supabase } from './supabase';
 
+// Check if is_admin function exists in the database
 export const createGetUserByEmailFunction = async () => {
   try {
-    // Create a security definer function that can look up a user by email
-    // Note: The function must already exist in the database
-    // This is just calling the function to ensure it's created
+    // Check if the is_admin function exists
     const { error } = await supabase.rpc('is_admin');
     
     if (error) {

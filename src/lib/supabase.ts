@@ -144,32 +144,13 @@ export const makeUserAdminByEmail = async (email: string): Promise<boolean> => {
         return false;
       }
       
-      // Find the target user's ID by email using our API
-      const { data: targetUser } = await supabase
-        .rpc('get_user_by_email', { email_param: email });
+      // Try to find the user by email using our API
+      // Note: We don't have direct access to auth.users so this won't work
+      // Keeping the structure for future reference
+      console.log("Note: This function can't directly look up users by email due to permission limitations");
       
-      if (!targetUser) {
-        console.error(`No user found with email: ${email}`);
-        return false;
-      }
-      
-      console.log("Making user an admin by email:", email, "with ID:", targetUser.id);
-      
-      // Insert or update the user's role to admin
-      const { error } = await supabase
-        .from('user_roles')
-        .upsert({ 
-          user_id: targetUser.id,
-          role: 'admin',
-          updated_at: new Date().toISOString()
-        });
-      
-      if (error) {
-        console.error("Error setting admin role:", error);
-        return false;
-      }
-      
-      return true;
+      // We'll need to rely on application-level permissions for this
+      return false;
     } else {
       // If we don't have an admin user yet, make the current user admin first
       const success = await makeCurrentUserAdmin();
@@ -197,14 +178,11 @@ export const makeHardcodedEmailAdmin = async (): Promise<boolean> => {
       return false;
     }
     
-    // Get all users (will include the current admin user at minimum)
-    const { data: users } = await supabase.from('auth.users').select('*');
-    if (!users) {
-      console.error("Failed to fetch users");
-      return false;
-    }
+    // We don't have direct access to auth.users table from the client
+    // so we can't query it directly
+    console.log("Attempting to get user data");
     
-    // Now that we have admin privileges, try to fetch all auth users
+    // Now that we have admin privileges, try to fetch users
     // Use our existing getAllUsers function
     const allUsers = await getAllUsers();
     
@@ -240,17 +218,18 @@ export const makeHardcodedEmailAdmin = async (): Promise<boolean> => {
   }
 };
 
-// Add a specific SQL function to get user by email (for admin functions)
-export const createGetUserByEmailFunction = async () => {
+// Function to verify or check that the is_admin function exists
+// We're not creating a function, just checking one exists
+export const checkIsAdminFunction = async () => {
   try {
-    const { error } = await supabase.rpc('create_get_user_by_email_function');
+    const { error } = await supabase.rpc('is_admin');
     if (error) {
-      console.error("Error creating function:", error);
+      console.error("Error checking is_admin function:", error);
       return false;
     }
     return true;
   } catch (error) {
-    console.error("Error creating get_user_by_email function:", error);
+    console.error("Error checking is_admin function:", error);
     return false;
   }
 };

@@ -10,7 +10,6 @@ import {
   makeCurrentUserAdmin
 } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { toast } from 'sonner';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { 

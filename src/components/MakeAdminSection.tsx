@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mail, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';

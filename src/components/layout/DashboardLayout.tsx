@@ -61,6 +61,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           <NavLink to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
           <NavLink to="/employees" icon={Users} label="Employees" />
           <NavLink to="/departments" icon={Building} label="Departments" />
+          <NavLink to="/jobs" icon={Briefcase} label="Jobs" />
           <NavLink to="/job-history" icon={History} label="Job History" />
           <NavLink to="/user-management" icon={UserCog} label="Manage Users" />
           

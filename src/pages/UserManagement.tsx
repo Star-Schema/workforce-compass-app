@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -143,7 +144,8 @@ const UserManagement = () => {
   // Listen for authentication events to update user list when new users sign up
   useEffect(() => {
     const authSubscription = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+      // Fix: Using the correct event types for Supabase Auth
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
         // When a user signs in or is updated, refetch the users list
         refetchUsers();
       }

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -6,7 +7,6 @@ import {
   handleSupabaseError, 
   getAllUsers, 
   createUserByAdmin,
-  makeCurrentUserAdmin,
   makeHardcodedEmailAdmin
 } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
@@ -48,7 +48,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { UserPlus, Pencil, Trash2, Lock, Shield, UserIcon, Star } from 'lucide-react';
+import { UserPlus, Pencil, Trash2, Lock, Shield, UserIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/database';
 import MakeAdminSection from '@/components/MakeAdminSection';
@@ -71,61 +71,8 @@ const UserManagement = () => {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserRole, setNewUserRole] = useState<UserRole>('user');
   const [editUserRole, setEditUserRole] = useState<UserRole>('user');
-  const [adminPromoted, setAdminPromoted] = useState(false);
-  const [specificEmailAdded, setSpecificEmailAdded] = useState(false);
   
   const queryClient = useQueryClient();
-
-  // Make current user admin mutation
-  const makeAdminMutation = useMutation({
-    mutationFn: makeCurrentUserAdmin,
-    onSuccess: () => {
-      setAdminPromoted(true);
-      toast({
-        title: "Success!",
-        description: "Your account is now an admin."
-      });
-      // Refetch admin status and users list
-      refetchAdminStatus();
-      refetchUsers();
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error making user admin",
-        description: handleSupabaseError(error),
-        variant: "destructive"
-      });
-    }
-  });
-  
-  // Make specific email admin mutation
-  const makeSpecificEmailAdminMutation = useMutation({
-    mutationFn: makeHardcodedEmailAdmin,
-    onSuccess: (success) => {
-      if (success) {
-        setSpecificEmailAdded(true);
-        toast({
-          title: "Success!",
-          description: "ramoel.bello5@gmail.com is now an admin."
-        });
-      } else {
-        toast({
-          title: "Not found",
-          description: "Could not find ramoel.bello5@gmail.com in the users list.",
-          variant: "destructive"
-        });
-      }
-      // Refetch users list
-      refetchUsers();
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error setting specific email as admin",
-        description: handleSupabaseError(error),
-        variant: "destructive"
-      });
-    }
-  });
 
   // Check if current user is an admin
   const { data: isAdminUser = false, isLoading: isCheckingAdmin, refetch: refetchAdminStatus } = useQuery({
@@ -155,14 +102,6 @@ const UserManagement = () => {
       authSubscription.data.subscription.unsubscribe();
     };
   }, []);
-
-  // Automatically make user admin if they're not already
-  useEffect(() => {
-    if (currentUser && !isAdminUser && !adminPromoted) {
-      console.log("Automatically making user admin");
-      makeAdminMutation.mutate();
-    }
-  }, [currentUser, isAdminUser, adminPromoted]);
 
   // Add user mutation (no password needed as admin)
   const addUserMutation = useMutation({
@@ -293,7 +232,6 @@ const UserManagement = () => {
     }
   };
 
-  // Show the user management screen regardless of admin status
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -301,27 +239,8 @@ const UserManagement = () => {
           <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
           <p className="text-muted-foreground">Manage user accounts and permissions</p>
         </div>
-
-        {!isAdminUser && !isCheckingAdmin && (
-          <div className="bg-muted p-6 rounded-lg mb-6">
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <Shield className="h-12 w-12 text-muted-foreground" />
-              <h2 className="text-xl font-semibold">Make yourself an admin</h2>
-              <p className="text-center text-muted-foreground max-w-md">
-                You need admin privileges to manage users. Click the button below to make your account an admin.
-              </p>
-              <Button 
-                onClick={() => makeAdminMutation.mutate()} 
-                disabled={makeAdminMutation.isPending}
-              >
-                <Star className="mr-2 h-4 w-4" />
-                {makeAdminMutation.isPending ? "Making you admin..." : "Make me an admin"}
-              </Button>
-            </div>
-          </div>
-        )}
         
-        {/* Specific section to make ramoel.bello5@gmail.com admin */}
+        {/* Make ramoel.bello5@gmail.com admin section - only shown if not already admin */}
         <MakeAdminSection 
           email="ramoel.bello5@gmail.com"
           onSuccess={() => refetchUsers()}

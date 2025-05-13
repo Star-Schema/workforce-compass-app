@@ -47,6 +47,22 @@ const MakeAdminSection = ({ email = "ramoel.bello5@gmail.com", onSuccess }: Make
     }
   };
   
+  if (isSuccess) {
+    return (
+      <Card>
+        <CardHeader className="text-center pb-2">
+          <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+            <CheckCircle className="h-6 w-6 text-green-600" />
+          </div>
+          <CardTitle>{email} is now an admin</CardTitle>
+          <CardDescription>
+            Admin access has been granted successfully
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+  
   return (
     <Card>
       <CardHeader className="text-center pb-2">
@@ -61,16 +77,11 @@ const MakeAdminSection = ({ email = "ramoel.bello5@gmail.com", onSuccess }: Make
       <CardContent className="pt-4 text-center">
         <Button 
           onClick={handleMakeAdmin}
-          disabled={isProcessing || isSuccess}
+          disabled={isProcessing}
           className="px-8"
           size="lg"
         >
-          {isSuccess ? (
-            <>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Admin Access Granted
-            </>
-          ) : isProcessing ? (
+          {isProcessing ? (
             <>
               <Shield className="mr-2 h-4 w-4 animate-pulse" />
               Setting as admin...

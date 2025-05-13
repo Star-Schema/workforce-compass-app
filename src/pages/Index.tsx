@@ -49,13 +49,13 @@ const Index = () => {
     );
   }
   
-  // If user is logged in but we're not redirecting, show make admin component
+  // If user is logged in but we're not redirecting, show make admin component for ramoel.bello5@gmail.com
   if (user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6">
         <div className="w-full max-w-xl">
           <h1 className="text-3xl font-bold mb-6 text-center">HR System Admin Setup</h1>
-          <MakeAdminSection onSuccess={() => toast({
+          <MakeAdminSection email="ramoel.bello5@gmail.com" onSuccess={() => toast({
             title: "Success",
             description: "Admin user has been configured. You can now use the system."
           })} />

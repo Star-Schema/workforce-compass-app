@@ -128,6 +128,7 @@ const Employees = () => {
         
         console.log("Employee data:", employeeData);
         
+        // Fix the type issue by ensuring we return EmployeeWithJobHistory objects
         if (employeeData && employeeData.length > 0) {
           const employeeIds = employeeData.map(emp => emp.empno);
           
@@ -143,6 +144,7 @@ const Employees = () => {
           
           console.log("Job history data:", jobHistoryData);
           
+          // Explicitly map each employee to include empty jobhistory array if none exists
           const employeesWithJobHistory = employeeData.map(employee => {
             const jobHistory = jobHistoryData?.filter(jh => jh.empno === employee.empno) || [];
             return {
@@ -154,7 +156,8 @@ const Employees = () => {
           return employeesWithJobHistory;
         }
         
-        return employeeData as EmployeeWithJobHistory[] || [];
+        // Return empty array with proper type when no data
+        return [] as EmployeeWithJobHistory[];
       } catch (error) {
         console.error("Failed to fetch employees:", error);
         toast({

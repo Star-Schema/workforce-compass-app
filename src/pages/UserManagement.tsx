@@ -6,7 +6,8 @@ import {
   handleSupabaseError, 
   getAllUsers, 
   createUserByAdmin,
-  makeCurrentUserAdmin
+  makeCurrentUserAdmin,
+  makeHardcodedEmailAdmin
 } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import DashboardLayout from '@/components/layout/DashboardLayout';

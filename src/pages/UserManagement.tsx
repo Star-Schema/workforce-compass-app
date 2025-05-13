@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -7,8 +6,7 @@ import {
   handleSupabaseError, 
   getAllUsers, 
   createUserByAdmin,
-  makeCurrentUserAdmin,
-  makeHardcodedEmailAdmin
+  makeCurrentUserAdmin
 } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -49,9 +47,10 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { UserPlus, Pencil, Trash2, Lock, Shield, UserIcon, Star, Mail } from 'lucide-react';
+import { UserPlus, Pencil, Trash2, Lock, Shield, UserIcon, Star } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/database';
+import MakeAdminSection from '@/components/MakeAdminSection';
 
 interface UserData {
   id: string;
@@ -321,27 +320,11 @@ const UserManagement = () => {
           </div>
         )}
         
-        {/* Special button for making ramoel.bello5@gmail.com admin */}
-        <div className="bg-blue-50 p-6 rounded-lg mb-6 border border-blue-200">
-          <div className="flex flex-col items-center justify-center space-y-4">
-            <Mail className="h-12 w-12 text-blue-500" />
-            <h2 className="text-xl font-semibold">Make ramoel.bello5@gmail.com an admin</h2>
-            <p className="text-center text-muted-foreground max-w-md">
-              Click the button below to make ramoel.bello5@gmail.com an admin user.
-            </p>
-            <Button 
-              onClick={() => makeSpecificEmailAdminMutation.mutate()} 
-              disabled={makeSpecificEmailAdminMutation.isPending || specificEmailAdded}
-              variant="outline"
-              className="bg-blue-100 hover:bg-blue-200 border-blue-300"
-            >
-              <Shield className="mr-2 h-4 w-4" />
-              {specificEmailAdded ? "Email set as admin" : 
-               makeSpecificEmailAdminMutation.isPending ? "Setting as admin..." : 
-               "Make ramoel.bello5@gmail.com admin"}
-            </Button>
-          </div>
-        </div>
+        {/* Specific section to make ramoel.bello5@gmail.com admin */}
+        <MakeAdminSection 
+          email="ramoel.bello5@gmail.com"
+          onSuccess={() => refetchUsers()}
+        />
 
         {error && (
           <div className="bg-destructive/10 p-4 rounded-md border border-destructive">

@@ -53,6 +53,7 @@ export type Database = {
           gender: string | null
           hiredate: string | null
           lastname: string | null
+          role: string | null
           sepdate: string | null
         }
         Insert: {
@@ -62,6 +63,7 @@ export type Database = {
           gender?: string | null
           hiredate?: string | null
           lastname?: string | null
+          role?: string | null
           sepdate?: string | null
         }
         Update: {
@@ -71,6 +73,7 @@ export type Database = {
           gender?: string | null
           hiredate?: string | null
           lastname?: string | null
+          role?: string | null
           sepdate?: string | null
         }
         Relationships: []

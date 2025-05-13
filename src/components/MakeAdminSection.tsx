@@ -1,15 +1,17 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mail, Shield } from 'lucide-react';
+import { Mail, Shield, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { makeHardcodedEmailAdmin } from '@/lib/supabase';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface MakeAdminSectionProps {
+  email?: string;
   onSuccess?: () => void;
 }
 
-const MakeAdminSection = ({ onSuccess }: MakeAdminSectionProps) => {
+const MakeAdminSection = ({ email = "ramoel.bello5@gmail.com", onSuccess }: MakeAdminSectionProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const { toast } = useToast();
@@ -23,13 +25,13 @@ const MakeAdminSection = ({ onSuccess }: MakeAdminSectionProps) => {
         setIsSuccess(true);
         toast({
           title: "Success!",
-          description: "ramoel.bello5@gmail.com is now an admin."
+          description: `${email} is now an admin.`,
         });
         if (onSuccess) onSuccess();
       } else {
         toast({
           title: "Not found",
-          description: "Could not find ramoel.bello5@gmail.com in the users list.",
+          description: `Could not find ${email} in the users list.`,
           variant: "destructive"
         });
       }
@@ -37,7 +39,7 @@ const MakeAdminSection = ({ onSuccess }: MakeAdminSectionProps) => {
       console.error("Error making user admin:", error);
       toast({
         title: "Error",
-        description: "Failed to make ramoel.bello5@gmail.com an admin.",
+        description: `Failed to make ${email} an admin.`,
         variant: "destructive"
       });
     } finally {
@@ -46,33 +48,42 @@ const MakeAdminSection = ({ onSuccess }: MakeAdminSectionProps) => {
   };
   
   return (
-    <div className="bg-blue-50 p-8 rounded-lg border border-blue-200 text-center">
-      <Mail className="h-16 w-16 text-blue-500 mx-auto mb-4" />
-      
-      <h2 className="text-2xl font-semibold mb-2">
-        Make ramoel.bello5@gmail.com an admin
-      </h2>
-      
-      <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-        Click the button below to make ramoel.bello5@gmail.com an admin user.
-      </p>
-      
-      <Button 
-        onClick={handleMakeAdmin}
-        disabled={isProcessing || isSuccess}
-        variant="outline"
-        className="bg-blue-100 hover:bg-blue-200 border-blue-300 font-medium px-8 py-6 h-auto"
-        size="lg"
-      >
-        <Shield className="mr-2 h-5 w-5" />
-        {isSuccess ? 
-          "Email set as admin" : 
-          isProcessing ? 
-            "Setting as admin..." : 
-            "Make ramoel.bello5@gmail.com admin"
-        }
-      </Button>
-    </div>
+    <Card>
+      <CardHeader className="text-center pb-2">
+        <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+          <Mail className="h-6 w-6 text-blue-600" />
+        </div>
+        <CardTitle>Make {email} an admin</CardTitle>
+        <CardDescription>
+          Grant this email full access to manage users and assign roles
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="pt-4 text-center">
+        <Button 
+          onClick={handleMakeAdmin}
+          disabled={isProcessing || isSuccess}
+          className="px-8"
+          size="lg"
+        >
+          {isSuccess ? (
+            <>
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Admin Access Granted
+            </>
+          ) : isProcessing ? (
+            <>
+              <Shield className="mr-2 h-4 w-4 animate-pulse" />
+              Setting as admin...
+            </>
+          ) : (
+            <>
+              <Shield className="mr-2 h-4 w-4" />
+              Grant Admin Access
+            </>
+          )}
+        </Button>
+      </CardContent>
+    </Card>
   );
 };
 

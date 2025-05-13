@@ -173,7 +173,6 @@ export const makeHardcodedEmailAdmin = async (): Promise<boolean> => {
     console.log("Attempting to get user data");
     
     // Now that we have admin privileges, try to fetch users
-    // Use our existing getAllUsers function
     const allUsers = await getAllUsers();
     
     // Find the target user and make them admin
@@ -200,6 +199,8 @@ export const makeHardcodedEmailAdmin = async (): Promise<boolean> => {
       }
     }
     
+    // If the user doesn't exist yet, we'll return false
+    // The UI will show a message that they need to sign up first
     console.log("Target email not found in current users list");
     return false;
   } catch (error) {

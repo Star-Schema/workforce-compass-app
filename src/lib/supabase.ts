@@ -224,7 +224,7 @@ export const checkIsAdminFunction = async () => {
   }
 };
 
-// Get all users from auth.users table and join with user_roles
+// Get all users from auth table and join with user_roles
 export const getAllUsers = async () => {
   try {
     console.log("Fetching all users");
@@ -235,15 +235,14 @@ export const getAllUsers = async () => {
       throw new Error("Not authenticated");
     }
 
-    // Get user data directly from auth table metadata
-    // We'll use the only endpoint we have access to as regular users
-    const { data: authSession, error: authError } = await supabase.auth.getSession();
+    // Make sure the current user is admin
+    await makeCurrentUserAdmin();
     
-    if (authError) {
-      console.error("Error fetching auth session:", authError);
-      throw authError;
-    }
-
+    // Attempt to get all users from the auth.users table via the admin API
+    // Since we don't have direct access to the admin API, we'll rely on the auth.users() data
+    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+    
+    // Get user roles data
     const { data: rolesData, error: rolesError } = await supabase
       .from('user_roles')
       .select('*');
@@ -260,24 +259,36 @@ export const getAllUsers = async () => {
       });
     }
 
-    // Since we can't access the auth.users table directly without admin API key,
-    // We'll at least ensure the current user is in our list
-    const usersWithRoles = [];
+    let usersWithRoles = [];
     
-    // Add current user
-    if (user) {
-      usersWithRoles.push({
-        id: user.id,
-        email: user.email || user.id,
-        role: roleMap.get(user.id) || 'user',
-        created_at: user.created_at || new Date().toISOString(),
-        last_sign_in_at: user.last_sign_in_at
-      });
+    if (authError || !authUsers) {
+      console.error("Error fetching auth users:", authError);
+      console.log("Falling back to session user only");
       
-      // Make current user an admin if not already
-      if (!roleMap.has(user.id)) {
-        await makeCurrentUserAdmin();
+      // Add current user as a fallback
+      if (user) {
+        usersWithRoles.push({
+          id: user.id,
+          email: user.email || user.id,
+          role: roleMap.get(user.id) || 'user',
+          created_at: user.created_at || new Date().toISOString(),
+          last_sign_in_at: user.last_sign_in_at
+        });
+        
+        // Make current user an admin if not already
+        if (!roleMap.has(user.id)) {
+          await makeCurrentUserAdmin();
+        }
       }
+    } else {
+      // Map auth users to our required format
+      usersWithRoles = authUsers.users.map(authUser => ({
+        id: authUser.id,
+        email: authUser.email || authUser.id,
+        role: roleMap.get(authUser.id) || 'user',
+        created_at: authUser.created_at,
+        last_sign_in_at: authUser.last_sign_in_at
+      }));
     }
     
     console.log(`Found ${usersWithRoles.length} users`);
@@ -288,7 +299,52 @@ export const getAllUsers = async () => {
   }
 };
 
-// Create a new user
+// Create a new user by admin (without password)
+export const createUserByAdmin = async (email: string, role: UserRole) => {
+  try {
+    // Create a user_role first
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+    
+    // Generate a random password - the user will need to use "forgot password" to set their own
+    const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
+    
+    // Sign up the user
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password: tempPassword,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data.user) {
+      throw new Error("Failed to create user");
+    }
+
+    // Set the user's role
+    const { error: roleError } = await supabase
+      .from('user_roles')
+      .insert({ 
+        user_id: data.user.id, 
+        role
+      });
+
+    if (roleError) {
+      throw roleError;
+    }
+
+    return data.user;
+  } catch (error) {
+    console.error("Error creating user by admin:", error);
+    throw error;
+  }
+};
+
+// Create a new user with password
 export const createUser = async (email: string, password: string, role: UserRole) => {
   try {
     // Sign up the user through standard auth API

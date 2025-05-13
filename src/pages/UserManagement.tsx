@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -5,7 +6,7 @@ import {
   isAdmin, 
   handleSupabaseError, 
   getAllUsers, 
-  createUser,
+  createUserByAdmin,
   makeCurrentUserAdmin,
   makeHardcodedEmailAdmin
 } from '@/lib/supabase';
@@ -68,7 +69,6 @@ const UserManagement = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState<UserRole>('user');
   const [editUserRole, setEditUserRole] = useState<UserRole>('user');
   const [adminPromoted, setAdminPromoted] = useState(false);
@@ -141,6 +141,20 @@ const UserManagement = () => {
     refetchOnWindowFocus: false
   });
 
+  // Listen for authentication events to update user list when new users sign up
+  useEffect(() => {
+    const authSubscription = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'SIGNED_UP') {
+        // When a user signs up or signs in, refetch the users list
+        refetchUsers();
+      }
+    });
+    
+    return () => {
+      authSubscription.data.subscription.unsubscribe();
+    };
+  }, [refetchUsers]);
+
   // Automatically make user admin if they're not already
   useEffect(() => {
     if (currentUser && !isAdminUser && !adminPromoted) {
@@ -149,10 +163,10 @@ const UserManagement = () => {
     }
   }, [currentUser, isAdminUser, adminPromoted]);
 
-  // Add user mutation
+  // Add user mutation (no password needed as admin)
   const addUserMutation = useMutation({
-    mutationFn: async ({ email, password, role }: { email: string, password: string, role: UserRole }) => {
-      return await createUser(email, password, role);
+    mutationFn: async ({ email, role }: { email: string, role: UserRole }) => {
+      return await createUserByAdmin(email, role);
     },
     onSuccess: () => {
       toast({
@@ -161,7 +175,6 @@ const UserManagement = () => {
       });
       setIsAddUserDialogOpen(false);
       setNewUserEmail('');
-      setNewUserPassword('');
       setNewUserRole('user');
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
@@ -240,7 +253,6 @@ const UserManagement = () => {
     e.preventDefault();
     addUserMutation.mutate({
       email: newUserEmail,
-      password: newUserPassword,
       role: newUserRole
     });
   };
@@ -308,7 +320,7 @@ const UserManagement = () => {
           </div>
         )}
         
-        {/* New special button for making ramoel.bello5@gmail.com admin */}
+        {/* Special button for making ramoel.bello5@gmail.com admin */}
         <div className="bg-blue-50 p-6 rounded-lg mb-6 border border-blue-200">
           <div className="flex flex-col items-center justify-center space-y-4">
             <Mail className="h-12 w-12 text-blue-500" />
@@ -370,18 +382,6 @@ const UserManagement = () => {
                     onChange={(e) => setNewUserEmail(e.target.value)}
                     required
                     placeholder="user@example.com"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={newUserPassword}
-                    onChange={(e) => setNewUserPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    placeholder="••••••••"
                   />
                 </div>
                 <div className="grid gap-2">

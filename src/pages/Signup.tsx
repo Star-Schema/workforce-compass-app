@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
@@ -54,7 +55,26 @@ const Signup = () => {
   const onSubmit = async (data: FormData) => {
     try {
       setIsLoading(true);
-      await signUp(data.email, data.password);
+      // Sign up the user
+      const authResult = await signUp(data.email, data.password);
+      
+      // Ensure the user gets added to user_roles table
+      if (authResult?.user) {
+        try {
+          // Insert new user into user_roles table with default 'user' role
+          await supabase
+            .from('user_roles')
+            .upsert({ 
+              user_id: authResult.user.id, 
+              role: 'user',
+              updated_at: new Date().toISOString()
+            });
+        } catch (roleError) {
+          console.error("Error setting user role:", roleError);
+          // Continue with flow even if role setting fails
+        }
+      }
+      
       toast({
         title: 'Registration successful',
         description: 'Please check your email to verify your account',

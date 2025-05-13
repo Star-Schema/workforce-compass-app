@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -144,8 +143,8 @@ const UserManagement = () => {
   // Listen for authentication events to update user list when new users sign up
   useEffect(() => {
     const authSubscription = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'SIGNED_UP') {
-        // When a user signs up or signs in, refetch the users list
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+        // When a user signs in or is updated, refetch the users list
         refetchUsers();
       }
     });
@@ -153,7 +152,7 @@ const UserManagement = () => {
     return () => {
       authSubscription.data.subscription.unsubscribe();
     };
-  }, [refetchUsers]);
+  }, []);
 
   // Automatically make user admin if they're not already
   useEffect(() => {

@@ -14,7 +14,7 @@ type AuthContextType = {
   user: User | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<{user: any} | undefined>;
   signOut: () => Promise<void>;
 };
 
@@ -154,12 +154,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: "Account created!",
         description: "Please check your email for verification.",
       });
+      
+      // Return the user data so it can be used for setting roles
+      return data;
     } catch (error: any) {
       toast({
         title: "Signup failed",
         description: error.message,
         variant: "destructive",
       });
+      throw error;
     } finally {
       setIsLoading(false);
     }

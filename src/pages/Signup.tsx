@@ -58,8 +58,8 @@ const Signup = () => {
       // Sign up the user
       const authResult = await signUp(data.email, data.password);
       
-      // Ensure the user gets added to user_roles table
-      if (authResult?.user) {
+      // Check if we have a user from the auth result before trying to access it
+      if (authResult && authResult.user) {
         try {
           // Insert new user into user_roles table with default 'user' role
           await supabase

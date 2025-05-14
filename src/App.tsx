@@ -12,7 +12,6 @@ import Employees from "./pages/Employees";
 import Departments from "./pages/Departments";
 import Jobs from "./pages/Jobs";
 import JobHistory from "./pages/JobHistory";
-import UserManagement from "./pages/UserManagement";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
@@ -42,7 +41,6 @@ const App = () => (
             <Route path="/departments" element={<Departments />} />
             <Route path="/jobs" element={<Jobs />} />
             <Route path="/job-history" element={<JobHistory />} />
-            <Route path="/user-management" element={<UserManagement />} />
             <Route path="/" element={<Index />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

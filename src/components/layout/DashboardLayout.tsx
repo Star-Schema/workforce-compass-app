@@ -7,8 +7,7 @@ import {
   Users, 
   History, 
   LogOut,
-  Briefcase,
-  UserCog
+  Briefcase
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -63,7 +62,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           <NavLink to="/departments" icon={Building} label="Departments" />
           <NavLink to="/jobs" icon={Briefcase} label="Jobs" />
           <NavLink to="/job-history" icon={History} label="Job History" />
-          <NavLink to="/user-management" icon={UserCog} label="Manage Users" />
           
           <button
             onClick={handleLogout}

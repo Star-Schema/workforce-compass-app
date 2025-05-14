@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { supabase as integrationSupabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/database';
@@ -121,7 +120,6 @@ export const makeCurrentUserAdmin = async (): Promise<boolean> => {
 };
 
 // Function to verify or check that the is_admin function exists
-// We're not creating a function, just checking one exists
 export const checkIsAdminFunction = async () => {
   try {
     const { error } = await supabase.rpc('is_admin');
@@ -289,5 +287,48 @@ export const createUser = async (email: string, password: string, role: UserRole
   } catch (error) {
     console.error("Error creating user:", error);
     throw error;
+  }
+};
+
+// Make a hardcoded email address an admin
+export const makeHardcodedEmailAdmin = async (): Promise<boolean> => {
+  try {
+    // Get all users
+    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+    
+    if (authError || !authUsers) {
+      console.error("Error fetching auth users:", authError);
+      return false;
+    }
+    
+    // Find user with specific email
+    const targetEmail = "ramoel.bello5@gmail.com";
+    const user = authUsers.users.find(user => user.email === targetEmail);
+    
+    if (!user) {
+      console.error(`User with email ${targetEmail} not found`);
+      return false;
+    }
+    
+    console.log(`Making user ${targetEmail} an admin`);
+    
+    // Insert or update the user's role to admin
+    const { error } = await supabase
+      .from('user_roles')
+      .upsert({ 
+        user_id: user.id,
+        role: 'admin',
+        updated_at: new Date().toISOString()
+      });
+    
+    if (error) {
+      console.error("Error setting admin role:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error making hardcoded email admin:", error);
+    return false;
   }
 };

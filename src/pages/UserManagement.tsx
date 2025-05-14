@@ -1,13 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   supabase, 
   isAdmin, 
   handleSupabaseError, 
   getAllUsers, 
-  createUserByAdmin,
-  makeHardcodedEmailAdmin
+  createUserByAdmin
 } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -51,7 +50,6 @@ import { Label } from '@/components/ui/label';
 import { UserPlus, Pencil, Trash2, Lock, Shield, UserIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/database';
-import MakeAdminSection from '@/components/MakeAdminSection';
 
 interface UserData {
   id: string;
@@ -75,7 +73,7 @@ const UserManagement = () => {
   const queryClient = useQueryClient();
 
   // Check if current user is an admin
-  const { data: isAdminUser = false, isLoading: isCheckingAdmin, refetch: refetchAdminStatus } = useQuery({
+  const { data: isAdminUser = false, isLoading: isCheckingAdmin } = useQuery({
     queryKey: ['admin-status'],
     queryFn: isAdmin
   });
@@ -89,7 +87,7 @@ const UserManagement = () => {
   });
 
   // Listen for authentication events to update user list when new users sign up
-  useEffect(() => {
+  React.useEffect(() => {
     const authSubscription = supabase.auth.onAuthStateChange((event) => {
       // Fix: Using the correct event types for Supabase Auth
       if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
@@ -239,12 +237,6 @@ const UserManagement = () => {
           <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
           <p className="text-muted-foreground">Manage user accounts and permissions</p>
         </div>
-        
-        {/* Make ramoel.bello5@gmail.com admin section - only shown if not already admin */}
-        <MakeAdminSection 
-          email="ramoel.bello5@gmail.com"
-          onSuccess={() => refetchUsers()}
-        />
 
         {error && (
           <div className="bg-destructive/10 p-4 rounded-md border border-destructive">
@@ -346,7 +338,7 @@ const UserManagement = () => {
               ) : (
                 users.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell className={user.email === 'ramoel.bello5@gmail.com' ? 'font-bold text-blue-600' : ''}>
+                    <TableCell>
                       {user.email}
                     </TableCell>
                     <TableCell>

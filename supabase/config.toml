@@ -1,1 +1,15 @@
+
 project_id = "ncbrcytyuvftzrqonnzh"
+
+# This is to help prevent the "infinite recursion" error in RLS policies
+# Add a security definer function for user role checks
+[[functions]]
+name = "check_user_role"
+body = '''
+BEGIN
+  RETURN (SELECT role FROM user_roles WHERE user_id = $1);
+END;
+'''
+language = "plpgsql"
+security_definer = true
+schema = "public"

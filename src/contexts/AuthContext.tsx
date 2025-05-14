@@ -1,9 +1,7 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, makeCurrentUserAdmin } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { makeCurrentUserAdmin } from '@/lib/supabase';
 
 type User = {
   id: string;

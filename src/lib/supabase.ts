@@ -193,3 +193,41 @@ export const makeHardcodedEmailAdmin = async (): Promise<boolean> => {
     return false;
   }
 };
+
+// Make current user an admin - function referenced in AuthContext and Index.tsx
+export const makeCurrentUserAdmin = async (): Promise<boolean> => {
+  try {
+    const { data: user, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.error("Error fetching current user:", authError);
+      return false;
+    }
+    
+    const userId = user.user.id;
+    
+    // Insert or update the user's role to admin
+    const { error } = await supabase
+      .from('user_roles')
+      .upsert({ 
+        user_id: userId,
+        role: 'admin',
+        updated_at: new Date().toISOString()
+      });
+    
+    if (error) {
+      console.error("Error setting admin role:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error making current user admin:", error);
+    return false;
+  }
+};
+
+// Check if valid credentials exist - function referenced in Login.tsx
+export const hasValidCredentials = (): boolean => {
+  return Boolean(supabaseUrl && supabaseAnonKey);
+};

@@ -100,7 +100,7 @@ const JobHistoryPage = () => {
         // Apply search filter if search query exists
         if (searchQuery) {
           const lowerCaseSearch = searchQuery.toLowerCase();
-          filteredData = filteredData.filter(record => {
+          filteredData = filteredData.filter((record: any) => {
             const employeeName = `${record.employee?.firstname || ''} ${record.employee?.lastname || ''}`.toLowerCase();
             const departmentName = record.department?.deptname?.toLowerCase() || '';
             const jobCode = record.jobcode?.toLowerCase() || '';
@@ -111,7 +111,25 @@ const JobHistoryPage = () => {
           });
         }
         
-        return filteredData;
+        // Transform the data to match our JobHistoryRecord interface
+        const transformedData: JobHistoryRecord[] = filteredData.map((record: any) => ({
+          jobcode: record.jobcode,
+          effdate: record.effdate,
+          salary: record.salary,
+          empno: record.empno,
+          deptcode: record.deptcode,
+          employee: {
+            empno: record.employee?.empno || '',
+            firstname: record.employee?.firstname || '',
+            lastname: record.employee?.lastname || '',
+          },
+          department: {
+            deptcode: record.department?.deptcode || '',
+            deptname: record.department?.deptname || '',
+          }
+        }));
+        
+        return transformedData;
       } catch (error) {
         console.error("Failed to fetch job history:", error);
         toast.error("Failed to load job history data");
@@ -207,4 +225,3 @@ const JobHistoryPage = () => {
 };
 
 export default JobHistoryPage;
-

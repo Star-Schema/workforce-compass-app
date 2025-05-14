@@ -128,9 +128,14 @@ const Employees = () => {
         
         console.log("Employee data:", employeeData);
         
-        // Fix the type issue by ensuring we return EmployeeWithJobHistory objects
-        if (employeeData && employeeData.length > 0) {
-          const employeeIds = employeeData.map(emp => emp.empno);
+        // Ensure we return EmployeeWithJobHistory objects
+        const employeesWithJobHistory: EmployeeWithJobHistory[] = employeeData?.map(emp => ({
+          ...emp,
+          jobhistory: [] // Initialize with empty array
+        })) || [];
+        
+        if (employeesWithJobHistory.length > 0) {
+          const employeeIds = employeesWithJobHistory.map(emp => emp.empno);
           
           const { data: jobHistoryData, error: jobHistoryError } = await supabase
             .from('jobhistory')
@@ -144,20 +149,15 @@ const Employees = () => {
           
           console.log("Job history data:", jobHistoryData);
           
-          // Explicitly map each employee to include empty jobhistory array if none exists
-          const employeesWithJobHistory = employeeData.map(employee => {
-            const jobHistory = jobHistoryData?.filter(jh => jh.empno === employee.empno) || [];
-            return {
-              ...employee,
-              jobhistory: jobHistory
-            } as EmployeeWithJobHistory;
-          });
-          
-          return employeesWithJobHistory;
+          // Assign job history to corresponding employees
+          if (jobHistoryData) {
+            employeesWithJobHistory.forEach(employee => {
+              employee.jobhistory = jobHistoryData.filter(jh => jh.empno === employee.empno) || [];
+            });
+          }
         }
         
-        // Return empty array with proper type when no data
-        return [] as EmployeeWithJobHistory[];
+        return employeesWithJobHistory;
       } catch (error) {
         console.error("Failed to fetch employees:", error);
         toast({
@@ -196,33 +196,37 @@ const Employees = () => {
     },
   });
 
-  // Get the next available employee number
+  // Improved employee number generation to prevent duplicates
   const getNextEmployeeNumber = async () => {
     try {
       const { data, error } = await supabase
         .from('employee')
         .select('empno')
-        .order('empno', { ascending: false })
-        .limit(1);
+        .order('empno', { ascending: false });
       
       if (error) throw error;
       
-      let nextNum = 1001; // Start with 1001 if no employees exist
+      // Find the highest numeric employee number
+      let highestNum = 1000; // Start with base number
       
       if (data && data.length > 0) {
-        // Try to extract the numeric part if it exists
-        const lastEmpNo = data[0].empno;
-        const numericPart = parseInt(lastEmpNo.replace(/\D/g, ''));
+        data.forEach(emp => {
+          const numericPart = parseInt(emp.empno.replace(/\D/g, ''));
+          if (!isNaN(numericPart) && numericPart > highestNum) {
+            highestNum = numericPart;
+          }
+        });
         
-        if (!isNaN(numericPart)) {
-          nextNum = numericPart + 1;
-        }
+        // Increment by 1 to get a unique number
+        highestNum += 1;
       }
       
-      return nextNum.toString();
+      return highestNum.toString();
     } catch (error) {
       console.error("Failed to get next employee number:", error);
-      return Math.floor(1000 + Math.random() * 9000).toString(); // Fallback
+      // Generate a random number as fallback, with timestamp to ensure uniqueness
+      const timestamp = new Date().getTime().toString().slice(-4);
+      return `${Math.floor(1000 + Math.random() * 900)}${timestamp}`;
     }
   };
 
@@ -243,7 +247,10 @@ const Employees = () => {
         }])
         .select();
       
-      if (empError) throw empError;
+      if (empError) {
+        console.error("Error adding employee:", empError);
+        throw empError;
+      }
       
       if (empData && empData[0] && newEmployee.deptcode && newEmployee.jobcode) {
         const { error: jobHistoryError } = await supabase
@@ -256,7 +263,10 @@ const Employees = () => {
             salary: newEmployee.salary || 0
           }]);
           
-        if (jobHistoryError) throw jobHistoryError;
+        if (jobHistoryError) {
+          console.error("Error adding job history:", jobHistoryError);
+          throw jobHistoryError;
+        }
       }
       
       return empData;
